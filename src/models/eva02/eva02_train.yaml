@@ -1,0 +1,20 @@
+DATA_DIR: "/lab/projects/fire_smoke_awr/data/classification/training/train_gt+fp"
+PARENT_DIR: "/lab/projects/fire_smoke_awr/outputs/eva02/fp_mined_v2_adamw"
+SAVE_SUBDIR: "train"
+
+BATCH_SIZE: 32
+EPOCHS: 100
+LR: 1e-5
+OPTIMIZER: "adamw"          # "adamw", "adam", or "sgd"
+MOMENTUM: 0.9               # only used if OPTIMIZER=sgd
+WEIGHT_DECAY: 0.01          # common for all optimizers
+
+SCHEDULER: "cosine"       # "cosine", "step", "none"
+STEP_SIZE: 30             # used if SCHEDULER="step"
+GAMMA: 0.1                # used if SCHEDULER="step"
+
+MODEL_NAME: "eva02_base_patch16_clip_224"
+IMG_SIZE: 224
+TRANSFORM_MODE: "letterbox" # "letterbox" or "centerpad"
+DEVICE: "cuda"
+TEST: false

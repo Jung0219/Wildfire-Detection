@@ -1,0 +1,19 @@
+# Ignore all model checkpoints
+*.pt
+
+# Ignore images
+*.jpg
+*.jpeg
+*.png
+
+# Ignore text label files
+*.txt
+
+# (Optional) Ignore entire data and output directories if you want
+data/
+outputs/
+weights/
+
+# Ignore common large or generated files
+*.log
+*.tmp

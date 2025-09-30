@@ -1,0 +1,8 @@
+path: /lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/dev
+train: images/test
+val: images/test 
+test: images/test 
+
+nc: 2
+names: ["fire", "smoke"]
+ 
