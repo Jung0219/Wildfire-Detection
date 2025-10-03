@@ -10,7 +10,7 @@ from tqdm import tqdm
 from eva02_model import EVA02Classifier   # Letterbox/CenterPadOrLetterbox already defined here
 
 # ============ CONFIG ============
-PARENT_DIR      = "/lab/projects/fire_smoke_awr/outputs/eva02/fp_mined_v2"
+PARENT_DIR      = "/lab/projects/fire_smoke_awr/outputs/eva02/fp_mined_v2_sgd"
 # test set (ImageFolder expects subdirs per class)
 DATA_DIR        = "/lab/projects/fire_smoke_awr/data/classification/test_sets/EF_dev"
 SAVE_SUBDIR     =  os.path.basename(DATA_DIR)
@@ -24,7 +24,7 @@ BATCH_SIZE      = 128
 DEVICE          = "cuda" if torch.cuda.is_available() else "cpu"
 # =================================
 
-MODEL_PATH = os.path.join(PARENT_DIR, "train", "weights", "best.pt")
+MODEL_PATH = os.path.join(PARENT_DIR, "train", "weights", "best_loss.pt")
 SAVE_DIR   = os.path.join(PARENT_DIR, SAVE_SUBDIR)
 
 # handle existing save dir

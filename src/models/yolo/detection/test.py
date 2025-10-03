@@ -3,9 +3,9 @@ import os
 from pathlib import Path
 
 # Define paths
-parent_dir = '/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF'
-run_name = 'EF_dev'
-  
+parent_dir = '/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF' 
+run_name = 'ef+10%1'
+
 # Load the trained model
 model_path = os.path.join(parent_dir, 'train/weights/best.pt')
 print(f"[INFO] Loading model from: {model_path}")

@@ -11,7 +11,7 @@ from tqdm import tqdm
 # CONFIGURATION
 # =========================
 CONFIG = {
-    "json_file": "/lab/projects/fire_smoke_awr/outputs/eva02/fp_mined_v2/EF_dev/preds.json",  # Path to predictions JSON
+    "json_file": "/lab/projects/fire_smoke_awr/outputs/eva02/fp_mined_v2_sgd/EF_dev/preds.json",  # Path to predictions JSON
     "gt_dir": "/lab/projects/fire_smoke_awr/data/classification/test_sets/EF_dev",          # Ground truth folder (organized by class)
     "normalize_confusion": True,               # Save normalized confusion matrix
     "figsize": (6, 5),                         # Figure size for plots

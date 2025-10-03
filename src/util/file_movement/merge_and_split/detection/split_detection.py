@@ -3,19 +3,19 @@ import shutil
 import random
 
 # ==== EDIT THESE VARIABLES ====
-input_dir = '/lab/projects/fire_smoke_awr/data/detection/datasets/data_mining/ABCDE_early_fire_removed/dedup_phash10'
-output_dir = '/lab/projects/fire_smoke_awr/data/detection/training/ABCDE_noEF'
+input_dir = '/lab/projects/fire_smoke_awr/data/detection/training/deduplicated/phash10/A+B+C+D+E/merged'
+output_dir = '/lab/projects/fire_smoke_awr/data/detection/training/deduplicated/phash10/A+B+C+D+E/split'
 train_ratio = 0.7
-val_ratio = 0.2
-test_ratio = 0.1
+val_ratio = 0.15
+test_ratio = 0.15
 seed = 42
 # ==============================
 
 def split_dataset():
     assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-6, "Ratios must sum to 1."
 
-    input_images_dir = os.path.join(input_dir, 'images/test')
-    input_labels_dir = os.path.join(input_dir, 'labels/test')
+    input_images_dir = os.path.join(input_dir, 'images')
+    input_labels_dir = os.path.join(input_dir, 'labels')
 
     # Collect image files (only those with existing corresponding labels)
     images = [f for f in os.listdir(input_images_dir)

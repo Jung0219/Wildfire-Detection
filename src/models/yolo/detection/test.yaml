@@ -1,4 +1,4 @@
-path: /lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/dev
+path: /lab/projects/fire_smoke_awr/data/detection/test_sets/ef+10%
 train: images/test
 val: images/test 
 test: images/test 

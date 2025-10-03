@@ -4,25 +4,22 @@ import numpy as np
 # ================= CONFIG =================
 GT_DIR     = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/dev/labels/test"  # ground-truth labels
 PRED_DIR   = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_dev/composites" # predictions
-STEP       = 1    # confidence bin step
-START      = 0.0     # min confidence bound
-END        = 0.3     # max confidence bound
+STEP       = 0.05   # confidence bin step
+START      = 0.0    # min confidence bound
+END        = 1    # max confidence bound
 # ==========================================
-IOU_THRESH = 0.5     # IoU threshold for TP/FP
+IOU_THRESH = 0.5    # IoU threshold for TP/FP
 # ==========================================
-
 
 def parse_gt_line(line):
     """GT format: class x y w h"""
     cls, x, y, w, h = line.strip().split()
     return int(cls), float(x), float(y), float(w), float(h)
 
-
 def parse_pred_line(line):
     """Pred format: class x y w h conf"""
     cls, x, y, w, h, conf = line.strip().split()
     return int(cls), float(x), float(y), float(w), float(h), float(conf)
-
 
 def iou(box1, box2):
     x1, y1, w1, h1 = box1
@@ -46,7 +43,6 @@ def iou(box1, box2):
     area2 = w2 * h2
     union = area1 + area2 - inter_area
     return inter_area / union if union > 0 else 0.0
-
 
 def evaluate_bins(gt_dir, pred_dir, step, start, end, iou_thresh):
     edges = np.arange(start, end + step, step)
@@ -101,18 +97,19 @@ def evaluate_bins(gt_dir, pred_dir, step, start, end, iou_thresh):
             "TP": TP,
             "FP": FP,
             "TP/GT": tp_ratio,
-            "FP/GT": fp_ratio
+            "FP/GT": fp_ratio,
+            "GT": total_gt
         }
 
-    return results
-
+    return results, total_gt
 
 if __name__ == "__main__":
-    results = evaluate_bins(GT_DIR, PRED_DIR, STEP, START, END, IOU_THRESH)
-    print("=== Ratios by Confidence Bin ===")
+    results, total_gt = evaluate_bins(GT_DIR, PRED_DIR, STEP, START, END, IOU_THRESH)
+    print(f"=== Ratios by Confidence Bin ===\nTotal GT count = {total_gt}\n")
     for bin_range, stats in results.items():
         print(
             f"{bin_range}: "
             f"TP={stats['TP']} FP={stats['FP']} "
-            f"TP/GT={stats['TP/GT']:.3f} FP/GT={stats['FP/GT']:.3f}"
+            f"TP/GT={stats['TP/GT']:.3f} FP/GT={stats['FP/GT']:.3f} "
+            f"(GT={stats['GT']})"
         )

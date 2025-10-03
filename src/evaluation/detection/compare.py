@@ -6,15 +6,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ================= CONFIG =================
-GT_DIR: str        = "/lab/projects/fire_smoke_awr/data/detection/test_sets/ABCDE_noEF_10%/labels/test"
-PRED_BASELINE: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/ABCDE_noEF_10%/labels"
-PRED_NEW: str      = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/ABCDE_noEF_10%/composites"
+GT_DIR: str        = "/lab/projects/fire_smoke_awr/data/detection/test_sets/ef+10%"
+PRED_BASELINE: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/ef+10%/labels"
+PRED_NEW: str      = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/ef+10%/composite_selective"
 IOU_THRESH: float = 0.5
 MAX_DETS: Optional[int] = 100
 CONF_GRID_STEPS: int = 201
 OUT_DIR: str = os.path.join(PRED_NEW, "plots_baseline_comparison")
 # ==========================================
-
+GT_DIR = GT_DIR + "/labels/test"
 
 def load_yolo_labels(path: str, is_pred: bool = False) -> List[Tuple]:
     boxes: List[Tuple] = []

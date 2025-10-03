@@ -6,8 +6,8 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 # ================= CONFIG =================
-GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/dev"     # contains images/test and labels/test
-PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_dev/labels" #experiments/nms/nms_0.5"  # e.g., "/path/to/pred_labels" (YOLO txt) 
+GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/datasets/data_mining/single_objects_lt_130/early_fire"     # contains images/test and labels/test
+PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/ef_all/composites" #experiments/nms/nms_0.5"  # e.g., "/path/to/pred_labels" (YOLO txt) 
 CONF_THRESH = 0.0  # <--- configurable threshold; None for no filtering
 # ==========================================
 

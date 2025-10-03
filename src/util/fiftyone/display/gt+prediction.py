@@ -4,13 +4,12 @@ import fiftyone.core.labels as fol
 from tqdm import tqdm
 
 # ================== CONFIG ==================
-parent = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/dev"
-dataset_name = "EF_dev"
-
+parent = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/all"
+dataset_name = "early_fire_all"
+ 
 extra_predictions = {
-    "all" : "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_dev/composites",
-    "tp_03": "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_dev/composites/conf_lt_0.3/tp",
-    "fp_03":"/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_dev/composites/conf_lt_0.3/fp"
+    "original" : "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_all/labels",
+    "composites": "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_all/composites"
 } 
 
 
