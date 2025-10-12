@@ -1,7 +1,7 @@
 import os
 
 # Set your directory path here
-directory = "/lab/projects/fire_smoke_awr/data/classification/datasets/ABCDE_noEF_train/detector_tp+fp/smoke"
+directory = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire/images/val"
 
 def count_files_in_directory(directory):
     return len([f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))])

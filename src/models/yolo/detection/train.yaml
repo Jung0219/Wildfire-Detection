@@ -1,4 +1,4 @@
-path: /lab/projects/fire_smoke_awr/data/detection/training/deduplicated/phash10/A+B+C+D+E/split
+path: /lab/projects/fire_smoke_awr/data/detection/training/early_fire_letterbox
 train: images/train
 val: images/val
 

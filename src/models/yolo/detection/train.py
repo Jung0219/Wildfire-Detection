@@ -1,7 +1,7 @@
 from datetime import datetime
 from ultralytics import YOLO
 
-project_dir = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_phash10"  # change as needed
+project_dir = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_letterbox"  # change as needed
 
 model = YOLO("/lab/projects/fire_smoke_awr/weights/pretrained/yolov8/yolov8s.pt")  # change to yolov8s.pt, m.pt, etc. as needed
 start_time = datetime.now()

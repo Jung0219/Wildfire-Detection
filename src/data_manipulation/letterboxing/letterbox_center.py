@@ -4,8 +4,8 @@ import numpy as np
 from pathlib import Path
 
 # --------------------- CONFIGURATION ---------------------
-PARENT_DIR = "/lab/projects/fire_smoke_awr/data/final/test_data/small_object_set/hand-filtered"  # contains images/ and labels/
-OUTPUT_DIR = "/lab/projects/fire_smoke_awr/data/final/test_data/small_object_set/hand-filtered/letterboxed"
+PARENT_DIR = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"  # contains images/ and labels/
+OUTPUT_DIR = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire_letterbox"  # output root for images/ and labels/
 IMG_SIZE = 640
 STRIDE = 32
 PADDING_COLOR = (114, 114, 114)
@@ -74,8 +74,8 @@ def adjust_yolo_labels(label_path, out_label_path, r, dw, dh, orig_w, orig_h, im
         f.write("\n".join(new_lines))
 
 def process_dataset_with_labels(parent_dir, output_dir, img_size=640, stride=32, padding_color=(114, 114, 114)):
-    input_img_root = Path(parent_dir) / "images/test"
-    input_lbl_root = Path(parent_dir) / "labels/test"
+    input_img_root = Path(parent_dir) / "images/train"
+    input_lbl_root = Path(parent_dir) / "labels/train"
 
     image_files = list(input_img_root.rglob("*.*"))
     valid_exts = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff")
@@ -95,8 +95,8 @@ def process_dataset_with_labels(parent_dir, output_dir, img_size=640, stride=32,
         orig_h, orig_w = img.shape[:2]
         img_lb, r, dw, dh = letterbox(img, new_shape=img_size, color=padding_color, auto=False, stride=stride)
 
-        out_img_path = Path(output_dir) / "images/test" / relative_path
-        out_lbl_path = Path(output_dir) / "labels/test" / relative_path.with_suffix(".txt")
+        out_img_path = Path(output_dir) / "images/train" / relative_path
+        out_lbl_path = Path(output_dir) / "labels/train" / relative_path.with_suffix(".txt")
 
         out_img_path.parent.mkdir(parents=True, exist_ok=True)
         out_lbl_path.parent.mkdir(parents=True, exist_ok=True)

@@ -9,8 +9,8 @@ from composite_utils import process_image
 
 # ==================== CONFIG (default values) ====================
 # Directories (will be overridden by YAML if provided)
-IMAGE_DIR   = "/lab/projects/fire_smoke_awr/data/detection/test_sets/ef+10%/images/test"  
-OUTPUT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/ef+10%" 
+IMAGE_DIR   = "/lab/projects/fire_smoke_awr/data/detection/training/deduplicated/phash10/A+B+C+D+E/split/images/test"  
+OUTPUT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_phash10/test_set" 
 MODEL_PATH = os.path.join(os.path.dirname(OUTPUT_DIR), "train", "weights", "best.pt")
 
 # Processing options
@@ -21,16 +21,19 @@ POSTPROC        = "nms"
 CONF_THRESH     = 0.001
 
 # Composite condition thresholds
-CB_MIN   = 120
-CB_MAX   = 255
-CR_MIN   = 0
-CR_MAX   = 130
+Y_MIN = 80          # Minimum Y value (luminance)
+Y_MAX = 255  
+CB_MIN = 0         # Minimum Cb value for boundary
+CB_MAX = 140        # Maximum Cb value for boundary
+CR_MIN = 150         # Minimum Cr value for boundary
+CR_MAX = 255         # Maximum Cr value for boundary
 RATIO_TH = 0.05   # use composite if fire pixel ratio < 5%
 # ================================================================
 
 def use_composite(img_bgr,
                   cb_min=CB_MIN, cb_max=CB_MAX,
                   cr_min=CR_MIN, cr_max=CR_MAX,
+                  y_min=Y_MIN, y_max=Y_MAX,
                   ratio_thresh=RATIO_TH):
     """
     Use composite only if fire pixel ratio < ratio_thresh
@@ -39,13 +42,12 @@ def use_composite(img_bgr,
     H, W = img_bgr.shape[:2]
     ycrcb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2YCrCb)
     Y, Cr, Cb = cv2.split(ycrcb)
-    y_thresh = float(Y.astype(np.float32).mean())  # adaptive brightness threshold
 
-    m_full = ((Y >= y_thresh) &
+    m_full = ((Y >= y_min) & (Y <= y_max) &
               (Cb >= cb_min) & (Cb <= cb_max) &
               (Cr >= cr_min) & (Cr <= cr_max)).astype(np.uint8)
 
-    ratio = m_full.sum() / (H * W)
+    ratio = m_full.mean()
     return ratio < ratio_thresh
 
 

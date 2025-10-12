@@ -13,7 +13,7 @@ from matplotlib.patches import Rectangle
 Y_FIXED = 100          # Fixed Y value (0-255)
 CB_MIN = 0         # Minimum Cb value for boundary
 CB_MAX = 140        # Maximum Cb value for boundary
-CR_MIN = 160         # Minimum Cr value for boundary
+CR_MIN = 150         # Minimum Cr value for boundary
 CR_MAX = 255         # Maximum Cr value for boundary
 SAVE_PATH = "/lab/projects/fire_smoke_awr/src/pipeline/early_fire_scene_classifier/plane.png"     # e.g., "ycbcr_plane.png" or None to skip saving
 # =====================================================

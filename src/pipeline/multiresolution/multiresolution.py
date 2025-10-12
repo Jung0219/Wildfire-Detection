@@ -7,9 +7,9 @@ from torchvision.ops import nms
 from tqdm import tqdm
 
 # ================= CONFIG =================
-GT_DIR      = "/lab/projects/fire_smoke_awr/data/detection/test_sets/ef+10%"
-PARENT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/ef+10%"
-YOLO_MODEL  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/train/weights/best.pt"
+GT_DIR      = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"
+PARENT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_letterbox/early_fire_normal_test_set"
+YOLO_MODEL  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_letterbox/train/weights/best.pt"
 
 ## best values 
 INTERMEDIATE_SIZE = 780

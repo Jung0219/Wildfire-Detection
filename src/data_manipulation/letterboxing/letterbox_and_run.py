@@ -6,26 +6,25 @@ from ultralytics import YOLO
 
 # ================ CONFIG =================
 IMAGE_DIR   = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire/images/test"
-OUTPUT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_letterbox/early_fire_normal_test_set/pad_top_and_run"
+OUTPUT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_letterbox/early_fire_normal_test_set/letterbox_and_run"
 YOLO_MODEL  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_letterbox/train/weights/best.pt"
 TARGET_SIZE = 640
 PADDING_VAL = (114, 114, 114)   # pad color
 SAVE_PADDED = True              # save padded images for inspection
 # ==========================================
 
-def pad_bottom(image, new_shape=640, color=(114,114,114)):
-    """Resize with aspect ratio, then bottom-anchor inside a 640x640 canvas."""
+
+def letterbox_center(image, new_shape=640, color=(114,114,114)):
+    """Resize while keeping aspect ratio, then center inside a square canvas."""
     h, w = image.shape[:2]
     scale = min(new_shape / h, new_shape / w)
     new_w, new_h = int(round(w * scale)), int(round(h * scale))
 
     resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
 
-    # create canvas
+    # create canvas and center the resized image
     canvas = np.full((new_shape, new_shape, 3), color, dtype=np.uint8)
-
-    # put image at bottom center
-    y_offset = new_shape - new_h
+    y_offset = (new_shape - new_h) // 2
     x_offset = (new_shape - new_w) // 2
     canvas[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = resized
 
@@ -47,11 +46,11 @@ def map_back(box_norm, conf, cls_id, meta):
     x2 = (xc + w/2) * TARGET_SIZE
     y2 = (yc + h/2) * TARGET_SIZE
 
-    # remove bottom-padding offset
+    # remove centered padding offset
     x1 -= meta["x_offset"]; x2 -= meta["x_offset"]
     y1 -= meta["y_offset"]; y2 -= meta["y_offset"]
 
-    # scale back
+    # scale back to original image coordinates
     x1 /= meta["scale"]; x2 /= meta["scale"]
     y1 /= meta["scale"]; y2 /= meta["scale"]
 
@@ -80,9 +79,8 @@ if __name__ == "__main__":
         if original is None:
             continue
 
-        padded, meta = pad_bottom(original, TARGET_SIZE, PADDING_VAL)
+        padded, meta = letterbox_center(original, TARGET_SIZE, PADDING_VAL)
 
-        # save padded for inspection
         if SAVE_PADDED:
             cv2.imwrite(os.path.join(OUTPUT_DIR, "padded_images", img_name), padded)
 
@@ -95,7 +93,6 @@ if __name__ == "__main__":
             mapped = map_back(box, conf, cls_id, meta)
             dets.append(mapped)
 
-        # save results
         out_path = os.path.join(OUTPUT_DIR, base + ".txt")
         with open(out_path, "w") as f:
             for cls_id, xc, yc, w, h, conf in dets:

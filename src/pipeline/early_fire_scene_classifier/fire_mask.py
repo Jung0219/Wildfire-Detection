@@ -5,7 +5,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 # ================= CONFIG =================
-INPUT_DIR  = "/lab/projects/fire_smoke_awr/data/detection/training/ABCDE_noEF/images/val"
+INPUT_DIR  = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/all/images/test"
 OUTPUT_DIR = "/lab/projects/fire_smoke_awr/src/pipeline/early_fire_scene_classifier/fire_overlay"
 
 # Define Y, Cb, Cr thresholds (inclusive)

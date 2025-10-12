@@ -6,9 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ================= CONFIG =================
-GT_DIR: str        = "/lab/projects/fire_smoke_awr/data/detection/test_sets/ef+10%"
-PRED_BASELINE: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/ef+10%/labels"
-PRED_NEW: str      = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/ef+10%/composite_selective"
+GT_DIR: str        = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"     # contains images/test and labels/test
+PRED_BASELINE: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_letterbox/early_fire_normal_test_set/labels"  # e.g., "/path/to/pred_labels"
+PRED_NEW: str      = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_letterbox/early_fire_normal_test_set/composites"
 IOU_THRESH: float = 0.5
 MAX_DETS: Optional[int] = 100
 CONF_GRID_STEPS: int = 201
@@ -227,14 +227,20 @@ if __name__ == "__main__":
     axes[1,2].grid(True); axes[1,2].legend()
 
     axes[1,3].axis("off")
-    axes[1,3].text(0.1, 0.6,
+    axes[1,3].text(0.1, 0.55,
                    f"Baseline mAP: {mAP_old:.4f}\n"
                    f"New mAP: {mAP_new:.4f}\n"
                    f"ΔmAP: {delta_mAP:+.4f}\n"
-                   f"Mean ΔRecall: {np.mean(dR):+.4f}\n",
+                   f"Mean ΔRecall: {np.mean(dR):+.4f}\n"
+                   f"Mean ΔPrecision: {np.mean(dP):+.4f}\n"
+                   f"Mean ΔF1: {np.mean(dF1):+.4f}\n",
                    fontsize=14, bbox=dict(facecolor="white", alpha=0.7))
 
     plt.tight_layout()
-    plt.savefig(os.path.join(OUT_DIR, "all_metrics_grid.png"), dpi=300)
+    # Make plot filename adaptive based on baseline and new prediction directory names
+    baseline_name = os.path.basename(os.path.normpath(PRED_BASELINE))
+    new_name = os.path.basename(os.path.normpath(PRED_NEW))
+    plot_filename = f"all_metrics_grid_{baseline_name}_vs_{new_name}.png"
+    plt.savefig(os.path.join(OUT_DIR, plot_filename), dpi=300)
     plt.close()
-    print(f"\nSaved combined plot to {os.path.join(OUT_DIR, 'all_metrics_grid.png')}")
+    print(f"\nSaved combined plot to {os.path.join(OUT_DIR, plot_filename)}")
