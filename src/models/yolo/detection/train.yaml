@@ -1,7 +1,6 @@
-path: /lab/projects/fire_smoke_awr/data/detection/training/early_fire_letterbox
+path: /lab/projects/fire_smoke_awr/data/detection/training/ABCDE_noEF_pad_aug
 train: images/train
 val: images/val
 
 nc: 2
 names: ["fire", "smoke"]
-  

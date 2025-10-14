@@ -7,21 +7,21 @@ from torchvision.ops import nms
 from tqdm import tqdm
 
 # ================= CONFIG =================
-GT_DIR      = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"
-PARENT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug"
-YOLO_MODEL  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/train/weights/best.pt"
+GT_DIR      = "/lab/projects/fire_smoke_awr/data/detection/training/ABCDE_all_pad_aug"
+PARENT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_all_pad_aug/test_set"
+YOLO_MODEL  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_all_pad_aug/train/weights/best.pt"
 
 ## best values 
 INTERMEDIATE_SIZE = 780
 NMS_IOU_THRESH = 0.45
-SAVE_IMG = False
+SAVE_IMG = True
 
 # ==========================================
 IMAGE_DIR = os.path.join(GT_DIR, "images/test")
-OUTPUT_DIR = os.path.join(PARENT_DIR, "top_only")
-composite_dir = os.path.join(OUTPUT_DIR, "composite_images")
+OUTPUT_DIR = os.path.join(PARENT_DIR, "composites_orig_bottom")
+save_img_dir = os.path.join(OUTPUT_DIR, "composite_images")
 if SAVE_IMG:
-    os.makedirs(composite_dir, exist_ok=True)
+    os.makedirs(save_img_dir, exist_ok=True)
 # ==========================================
 
 
@@ -207,7 +207,7 @@ if __name__ == "__main__":
         base, ext = os.path.splitext(img_name)
 
         out_txt = os.path.join(OUTPUT_DIR, base + ".txt")
-        out_composite = os.path.join(composite_dir, base + "_composite.jpg")
+        out_composite = os.path.join(save_img_dir, base + "_composite.jpg")
 
         original = cv2.imread(img_path)
         H, W = original.shape[:2]
@@ -242,15 +242,15 @@ if __name__ == "__main__":
                 dets_bottom.append(mapped)
             else:
                 dets_top.append(mapped)
-        """
-                filtered_top = []
-                for det in dets_top:
-                    cls_id, xc, yc, w, h, conf, x1, y1, x2, y2 = det
-                    box_w = x2 - x1
-                    box_h = y2 - y1
-                    filtered_top.append(det)
-        """
-        merged = dets_top # dets_bottom + dets_top
+
+        filtered_top = []
+        for det in dets_top:
+            cls_id, xc, yc, w, h, conf, x1, y1, x2, y2 = det
+            box_w = x2 - x1
+            box_h = y2 - y1
+            filtered_top.append(det)
+
+        merged = dets_bottom + filtered_top
         if NMS_IOU_THRESH and NMS_IOU_THRESH > 0:
             final_dets = apply_nms(merged, NMS_IOU_THRESH, W, H)
         else:

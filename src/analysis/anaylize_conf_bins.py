@@ -2,15 +2,15 @@ import os
 import numpy as np
 
 # ================= CONFIG =================
-GT_DIR     = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/dev/labels/test"  # ground-truth labels
-PRED_DIR   = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_dev/composites" # predictions
+GT_DIR     = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire/labels/test"  # ground-truth labels
+PRED_DIR   = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire/test_set/composites_orig_top" # predictions
 STEP       = 0.05   # confidence bin step
 START      = 0.0    # min confidence bound
 END        = 1    # max confidence bound
 # ==========================================
 IOU_THRESH = 0.5    # IoU threshold for TP/FP
 # ==========================================
-
+print("prediction: ", os.path.basename(PRED_DIR))
 def parse_gt_line(line):
     """GT format: class x y w h"""
     cls, x, y, w, h = line.strip().split()

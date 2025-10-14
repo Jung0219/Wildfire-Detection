@@ -5,24 +5,21 @@ from tqdm import tqdm
 
 # ================== CONFIG ==================
 parent = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"
-dataset_name = "early_fire_trained"
- 
-extra_predictions = {
-    "original" : "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire/test_set/labels",
-    "composites": "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire/test_set/composites",
-    "bottome_only": "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire/test_set/pad_top_and_run"
+dataset_name = "debugging"
+
+predictions = {
+    "target_cropped_dynamic" : "/lab/projects/fire_smoke_awr/src/data_manipulation/cropping/target_crop_orig_scale",
+    "skyline_cropped" : "/lab/projects/fire_smoke_awr/src/data_manipulation/cropping/skyline_crop_orig_scale",
+    "target_cropped_fixed_window" : "/lab/projects/fire_smoke_awr/src/data_manipulation/cropping/target_crop_fixed_window"
 } 
 
-
+# --- Alternate Port Config ---
+USE_ALT_PORT = True
+DEFAULT_PORT = 5252
 # ============================================
+
 images_dir = f"{parent}/images/test"
-
-# Ground truth label folder (YOLO format, classes always fire/smoke)
 gt_dir = f"{parent}/labels/test"
-
-
-
-
 CLASS_LIST = ["fire", "smoke"]
 
 
@@ -48,12 +45,7 @@ def load_yolo_labels(images_dir, labels_dir):
                 class_id, x_center, y_center, width, height = map(float, parts[:5])
                 confidence = float(parts[5]) if len(parts) == 6 else None
                 label = CLASS_LIST[int(class_id)]
-                bbox = [
-                    x_center - width / 2,
-                    y_center - height / 2,
-                    width,
-                    height,
-                ]
+                bbox = [x_center - width / 2, y_center - height / 2, width, height]
                 det = fol.Detection(label=label, bounding_box=bbox)
                 if confidence is not None:
                     det.confidence = confidence
@@ -82,15 +74,24 @@ if __name__ == "__main__":
         samples_dict[path] = new_sample
 
     # --- Add extra prediction overlays ---
-    for field_name, preds_dir in extra_predictions.items():
+    for field_name, preds_dir in predictions.items():
         preds_map = load_yolo_labels(images_dir, preds_dir)
         for path, sample in preds_map.items():
             if path not in samples_dict:
                 samples_dict[path] = fo.Sample(filepath=path)
             samples_dict[path][field_name] = sample["temp_field"]
 
-    # Commit to FiftyOne dataset
     dataset.add_samples(list(samples_dict.values()))
 
-    session = fo.launch_app(dataset)
+    # --- Launch FiftyOne App ---
+    if USE_ALT_PORT:
+        try:
+            user_port = int(input("Enter alternate port (e.g., 5252): ").strip())
+        except ValueError:
+            print(f"Invalid input. Falling back to default port {DEFAULT_PORT}.")
+            user_port = DEFAULT_PORT
+        session = fo.launch_app(dataset, port=user_port)
+    else:
+        session = fo.launch_app(dataset, port=DEFAULT_PORT)
+
     session.wait()

@@ -12,7 +12,7 @@ PADDING_COLOR = (114, 114, 114)
 # ---------------------------------------------------------
 
 def letterbox(img, new_shape=(640, 640), color=(114, 114, 114),
-              auto=False, scaleFill=False, scaleup=True, stride=32):
+              auto=False, scaleFill=False, scaleup=False, stride=32):
     shape = img.shape[:2]
     if isinstance(new_shape, int):
         new_shape = (new_shape, new_shape)

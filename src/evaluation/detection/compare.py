@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 
 # ================= CONFIG =================
 GT_DIR: str        = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"     # contains images/test and labels/test
-PRED_BASELINE: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_letterbox/early_fire_normal_test_set/labels"  # e.g., "/path/to/pred_labels"
-PRED_NEW: str      = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_letterbox/early_fire_normal_test_set/composites"
+PRED_BASELINE: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire/test_set/pad_top_and_run"  # e.g., "/path/to/pred_labels"
+PRED_NEW: str      = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set/pad_top_and_run"
 IOU_THRESH: float = 0.5
 MAX_DETS: Optional[int] = 100
 CONF_GRID_STEPS: int = 201

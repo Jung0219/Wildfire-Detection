@@ -3,11 +3,11 @@ import shutil
 import random
 
 # ==== EDIT THESE VARIABLES ====
-input_dir = '/lab/projects/fire_smoke_awr/data/detection/training/deduplicated/phash10/A+B+C+D+E/merged'
-output_dir = '/lab/projects/fire_smoke_awr/data/detection/training/deduplicated/phash10/A+B+C+D+E/split'
+input_dir = '/lab/projects/fire_smoke_awr/data/detection/datasets/data_mining/ABCDE_all/dedup_phash10/padding_augmented'
+output_dir = '/lab/projects/fire_smoke_awr/data/detection/training/abcde_all_pad_augmented'
 train_ratio = 0.7
-val_ratio = 0.15
-test_ratio = 0.15
+val_ratio = 0.1
+test_ratio = 0.2
 seed = 42
 # ==============================
 

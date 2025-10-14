@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # ================= CONFIG =================
 # Set your folders and options here.
 GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"     # contains images/test and labels/test
-PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_letterbox/early_fire_normal_test_set/composites"  # e.g., "/path/to/pred_labels" (YOLO txt)
+PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set/target_crop_fixed_window"  # e.g., "/path/to/pred_labels" (YOLO txt)
 IOU_THRESH: float = 0.5
 MAX_DETS: Optional[int] = 100  # e.g., 100 to cap per-image detections
 SAVE_JSON: Optional[str] = None # e.g., "/path/to/results.json"
