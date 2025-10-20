@@ -1,4 +1,4 @@
-path: /lab/projects/fire_smoke_awr/data/detection/training/ABCDE_noEF_pad_aug
+path: /lab/projects/fire_smoke_awr/data/detection/training/early_smoke_A
 train: images/train
 val: images/val
 

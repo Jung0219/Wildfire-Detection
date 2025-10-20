@@ -2,74 +2,98 @@ import cv2
 import numpy as np
 import os
 import torch
-from ultralytics import YOLO   # pip install ultralytics
+from ultralytics import YOLO
 from torchvision.ops import nms
 from tqdm import tqdm
 
 # ================= CONFIG =================
 GT_DIR      = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"
-PARENT_DIR  = "/lab/projects/fire_smoke_awr/src/data_manipulation/cropping"
+PARENT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set/target_crop_fixed_window"
 YOLO_MODEL  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/train/weights/best.pt"
 
-## best values 
 INTERMEDIATE_SIZE = 780
 NMS_IOU_THRESH = None
 SAVE_IMG = True
+ANCHOR_FROM_GT = True  # <-- Use GT box center instead of skyline
+ANCHOR_USE_MEAN = False  # if multiple objects: True=average center, False=first box
+# ==========================================
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--intermediate_size", type=int, default=780)
+args = parser.parse_args()
+INTERMEDIATE_SIZE = args.intermediate_size
 
 # ==========================================
 IMAGE_DIR = os.path.join(GT_DIR, "images/test")
-OUTPUT_DIR = os.path.join(PARENT_DIR, "skyline_crop_orig_scale")
+LABEL_DIR = os.path.join(GT_DIR, "labels/test")
+OUTPUT_DIR = os.path.join(PARENT_DIR, f"target_crop_fixed_window_{INTERMEDIATE_SIZE}")
 cropped_dir = os.path.join(OUTPUT_DIR, "cropped_images")
 if SAVE_IMG:
     os.makedirs(cropped_dir, exist_ok=True)
 # ==========================================
 
 
-def detect_skyline_y(img_bgr, cb_min=120, cb_max=255, cr_min=0, cr_max=130, sky_ratio_thresh=5.0):
-    H, W = img_bgr.shape[:2]
-    ycrcb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2YCrCb)
-    Y, Cr, Cb = cv2.split(ycrcb)
-    y_thresh = float(Y.astype(np.float32).mean())
+def load_gt_center(label_path, use_mean=False):
+    """
+    Reads a YOLO-format label file and returns (xc, yc) of the first or mean box.
+    """
+    if not os.path.exists(label_path):
+        return None
 
-    def sky_mask(bgr):
-        ycrcb_ = cv2.cvtColor(bgr, cv2.COLOR_BGR2YCrCb)
-        Y_, Cr_, Cb_ = cv2.split(ycrcb_)
-        return ((Y_ >= y_thresh) &
-                (Cb_ >= cb_min) & (Cb_ <= cb_max) &
-                (Cr_ >= cr_min) & (Cr_ <= cr_max)).astype(np.uint8)
+    with open(label_path, "r") as f:
+        lines = [l.strip() for l in f.readlines() if l.strip()]
+    if not lines:
+        return None
 
-    m_full = sky_mask(img_bgr)
-    counts = m_full.sum(axis=1) / float(W)
-    d = np.diff(counts)
-    idx = int(np.argmin(d))
-    y_candidate = int(np.clip(idx + 1, 0, H - 1))
-    above = int(m_full[:y_candidate, :].sum())
-    below = int(m_full[y_candidate:, :].sum())
-    ratio = (above + 1e-9) / (below + 1e-9)
-    return y_candidate if ratio >= sky_ratio_thresh else -1
+    boxes = []
+    for line in lines:
+        parts = line.split()
+        if len(parts) >= 5:
+            xc, yc, w, h = map(float, parts[1:5])
+            boxes.append((xc, yc))
+
+    if not boxes:
+        return None
+
+    if use_mean:
+        arr = np.array(boxes)
+        return float(arr[:, 0].mean()), float(arr[:, 1].mean())
+    else:
+        return boxes[0]
 
 
-def generate_crop_640x640(original_image, object_center_norm, intermediate_size,
-                          anchor_x_frac=0.5, anchor_y_frac=0.25):
-    TARGET_SIZE = 640
+def generate_crop_fixed(original_image, object_center_norm, intermediate_size,
+                        crop_w=640, crop_h=280, anchor_x_frac=0.5, anchor_y_frac=0.25):
+    """
+    Generates a fixed-size crop (default 640x280) around an anchor position 
+    derived from the normalized object center. Uses an intermediate upscale.
+    """
     orig_h, orig_w = original_image.shape[:2]
 
+    # Step 1: Resize original image so that the longer side = intermediate_size
     scale_inter = intermediate_size / (orig_w if orig_w >= orig_h else orig_h)
     res_inter_w, res_inter_h = int(orig_w * scale_inter), int(orig_h * scale_inter)
     image_inter = cv2.resize(original_image, (res_inter_w, res_inter_h))
 
-    crop_h = TARGET_SIZE
-    crop_w = TARGET_SIZE
+    # Step 2: Convert normalized object center into pixel coordinates (intermediate scale)
     obj_x = int(np.clip(object_center_norm[0], 0, 1) * res_inter_w)
     obj_y = int(np.clip(object_center_norm[1], 0, 1) * res_inter_h)
+
+    # Step 3: Compute crop window centered around anchor fractions
     anchor_x = int(round(anchor_x_frac * crop_w))
     anchor_y = int(round(anchor_y_frac * crop_h))
+
     crop_x1 = max(0, obj_x - anchor_x)
     crop_y1 = max(0, obj_y - anchor_y)
     crop_x2 = min(crop_x1 + crop_w, res_inter_w)
     crop_y2 = min(crop_y1 + crop_h, res_inter_h)
-    if crop_x2 - crop_x1 < crop_w: crop_x1 = max(0, crop_x2 - crop_w)
-    if crop_y2 - crop_y1 < crop_h: crop_y1 = max(0, crop_y2 - crop_h)
+
+    # Adjust if crop goes out of bounds
+    if crop_x2 - crop_x1 < crop_w:
+        crop_x1 = max(0, crop_x2 - crop_w)
+    if crop_y2 - crop_y1 < crop_h:
+        crop_y1 = max(0, crop_y2 - crop_h)
 
     cropped = image_inter[crop_y1:crop_y2, crop_x1:crop_x2]
     if cropped.size == 0:
@@ -82,6 +106,7 @@ def generate_crop_640x640(original_image, object_center_norm, intermediate_size,
         "orig_w": orig_w, "orig_h": orig_h
     }
     return cropped, meta
+
 
 
 def yolo_to_original_crop_xyxy(box_xyxy, meta, conf, cls_id):
@@ -146,18 +171,26 @@ if __name__ == "__main__":
         original = cv2.imread(img_path)
         H, W = original.shape[:2]
 
-        # Wide image → crop pipeline
-        y_border = detect_skyline_y(original, 120, 255, 0, 130, 5.0)
-        obj_center = (0.5, float(y_border) / H) if y_border >= 0 else (0.5, 0.5)
-        cropped, meta = generate_crop_640x640(original, obj_center, INTERMEDIATE_SIZE)
+        # --- Determine object center ---
+        label_path = os.path.join(LABEL_DIR, base + ".txt")
+        if ANCHOR_FROM_GT:
+            gt_center = load_gt_center(label_path, use_mean=ANCHOR_USE_MEAN)
+            if gt_center is not None:
+                obj_center = gt_center
+            else:
+                obj_center = (0.5, 0.5)  # fallback
+        else:
+            obj_center = (0.5, 0.5)  # fallback if no GT mode
+
+        # --- Generate crop ---
+        cropped, meta = generate_crop_fixed(original, obj_center, INTERMEDIATE_SIZE)
 
         if SAVE_IMG:
             cv2.imwrite(out_crop, cropped)
 
-        # Run YOLO on cropped image
+        # --- Run YOLO ---
         results = model.predict(cropped, imgsz=640, conf=0.001, verbose=False)[0]
         dets = []
-
         for box_xyxy, conf, cls_id in zip(
             results.boxes.xyxy.cpu().numpy(),
             results.boxes.conf.cpu().numpy(),
@@ -166,13 +199,13 @@ if __name__ == "__main__":
             mapped = yolo_to_original_crop_xyxy(box_xyxy, meta, conf, cls_id)
             dets.append(mapped)
 
-        # Apply NMS
+        # --- Apply NMS if needed ---
         if NMS_IOU_THRESH and NMS_IOU_THRESH > 0:
             final_dets = apply_nms(dets, NMS_IOU_THRESH, W, H)
         else:
             final_dets = [[d[0], d[1], d[2], d[3], d[4], d[5]] for d in dets]
 
-        # Save results
+        # --- Save results ---
         with open(out_txt, "w") as f:
             for cls_id, xc, yc, w, h, conf in final_dets:
                 f.write(f"{cls_id} {xc:.6f} {yc:.6f} {w:.6f} {h:.6f} {conf:.4f}\n")

@@ -3,10 +3,10 @@ import fiftyone as fo
 from fiftyone import Sample
 
 # Path to your image directory
-image_dir = "/lab/projects/fire_smoke_awr/data/datasets/.foggia/original/images"
+image_dir = "/lab/projects/fire_smoke_awr/src/data_manipulation/letterboxing/yolo_letterbox_experiment/results/outputs/original_pred"
 
 # Create a new dataset
-dataset_name = "foggia"
+dataset_name = "orignal"
 
 if dataset_name in fo.list_datasets():
     print("deleting duplicate ...")

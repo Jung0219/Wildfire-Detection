@@ -11,7 +11,7 @@ GT_DIR      = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"
 PARENT_DIR  = "/lab/projects/fire_smoke_awr/src/data_manipulation/cropping"
 YOLO_MODEL  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/train/weights/best.pt"
 
-INTERMEDIATE_SIZE = 780
+INTERMEDIATE_SIZE = 700
 NMS_IOU_THRESH = None
 SAVE_IMG = True
 ANCHOR_FROM_GT = True  # <-- Use GT box center instead of skyline
@@ -135,7 +135,7 @@ def apply_nms(dets, iou_thresh, orig_w, orig_h):
         keep_idx = nms(boxes[idxs], scores[idxs], iou_thresh)
         keep.extend(idxs[keep_idx].tolist())
 
-    final_dets = []
+    final_dets = [] 
     for i in keep:
         cls_id, xc, yc, w, h, conf, *_ = dets[i]
         final_dets.append([cls_id, xc, yc, w, h, conf])
@@ -173,11 +173,26 @@ if __name__ == "__main__":
         # --- Generate crop ---
         cropped, meta = generate_crop_640x640(original, obj_center, INTERMEDIATE_SIZE)
 
-        if SAVE_IMG:
-            cv2.imwrite(out_crop, cropped)
-
         # --- Run YOLO ---
         results = model.predict(cropped, imgsz=640, conf=0.001, verbose=False)[0]
+
+        if SAVE_IMG:
+            vis_img = cropped.copy()
+
+            if results.boxes is not None and len(results.boxes) > 0:
+                boxes = results.boxes.xyxy.cpu().numpy()
+                confs = results.boxes.conf.cpu().numpy()
+                cls_ids = results.boxes.cls.cpu().numpy()
+
+                for (x1, y1, x2, y2), conf, cls_id in zip(boxes, confs, cls_ids):
+                    x1, y1, x2, y2 = map(int, [x1, y1, x2, y2])
+                    cv2.rectangle(vis_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    label = f"{int(cls_id)}:{conf:.2f}"
+                    cv2.putText(vis_img, label, (x1, max(0, y1 - 5)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+            out_crop = os.path.join(cropped_dir, base + "_det.jpg")
+            cv2.imwrite(out_crop, vis_img)
 
         # Build detections in the cropped-frame (do NOT remap to original)
         dets_norm = []    # [[cls, xc, yc, w, h, conf], ...] normalized (0..1) relative to model input
@@ -229,7 +244,6 @@ if __name__ == "__main__":
         with open(out_txt, "w") as f:
             for cls_id, xc, yc, w, h, conf in final_dets:
                 f.write(f"{int(cls_id)} {xc:.6f} {yc:.6f} {w:.6f} {h:.6f} {conf:.4f}\n")
-
-# ...existing code...
+                
 
     print(f"✅ Finished processing {len(image_files)} images. Results saved to {OUTPUT_DIR}")

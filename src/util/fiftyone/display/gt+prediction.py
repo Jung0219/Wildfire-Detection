@@ -8,13 +8,12 @@ parent = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"
 dataset_name = "debugging"
 
 predictions = {
-    "target_cropped_dynamic" : "/lab/projects/fire_smoke_awr/src/data_manipulation/cropping/target_crop_orig_scale",
-    "skyline_cropped" : "/lab/projects/fire_smoke_awr/src/data_manipulation/cropping/skyline_crop_orig_scale",
-    "target_cropped_fixed_window" : "/lab/projects/fire_smoke_awr/src/data_manipulation/cropping/target_crop_fixed_window"
-} 
+    "original" : "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set/labels",
+    "skyline_cropped" : "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set/skyline_crop/skyline_crop_window_800"
+}
 
 # --- Alternate Port Config ---
-USE_ALT_PORT = True
+USE_ALT_PORT = False
 DEFAULT_PORT = 5252
 # ============================================
 

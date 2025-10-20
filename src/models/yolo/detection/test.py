@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 
 # Define paths
-parent_dir = '/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug' 
-run_name = 'test_set'
+parent_dir = '/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF'  
+run_name = 'EF_test_set'
 
 # Load the trained model
 model_path = os.path.join(parent_dir, 'train/weights/best.pt')

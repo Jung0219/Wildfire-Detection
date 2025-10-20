@@ -3,7 +3,7 @@ import numpy as np
 
 # ================= CONFIG =================
 GT_DIR     = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire/labels/test"  # ground-truth labels
-PRED_DIR   = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire/test_set/composites_orig_top" # predictions
+PRED_DIR   = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_training_test_set/target_cropping/target_crop_dynamic_window_700" # predictions
 STEP       = 0.05   # confidence bin step
 START      = 0.0    # min confidence bound
 END        = 1    # max confidence bound

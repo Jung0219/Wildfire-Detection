@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # ================= CONFIG =================
 # Set your folders and options here.
 GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"     # contains images/test and labels/test
-PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set/target_crop_fixed_window"  # e.g., "/path/to/pred_labels" (YOLO txt)
+PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set/skyline_crop/skyline_crop_window_800"  # e.g., "/path/to/pred_labels" (YOLO txt)
 IOU_THRESH: float = 0.5
 MAX_DETS: Optional[int] = 100  # e.g., 100 to cap per-image detections
 SAVE_JSON: Optional[str] = None # e.g., "/path/to/results.json"
@@ -340,11 +340,8 @@ def main():
         print(f"Saved CSV: {SAVE_CSV}")
 
     # Plot confidence vs precision/recall/F1 and PR curve
-    # Plot confidence vs precision/recall/F1 and PR curve
     out_dir = PLOTS_DIR or os.path.join(PRED_DIR, "metrics")
     os.makedirs(out_dir, exist_ok=True)
-
-     # ...existing code...
     
     plt.figure(figsize=(14, 10)) 
 

@@ -6,12 +6,12 @@ import fiftyone.core.labels as fol
 from tqdm import tqdm
 
 # === Set your paths here ===
-parent = "/lab/projects/fire_smoke_awr/src/data_manipulation/letterboxing/padded"
-dataset_name = "letterbox_testing"
+parent = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire_A_only"
+dataset_name = "EF_A_only_test_set"
 
 # === Set your paths here ===
-images_dir = "/lab/projects/fire_smoke_awr/src/data_manipulation/cropping/target_crop_crop_scale/cropped_images" # f"{parent}/images/test"
-anno_path = "/lab/projects/fire_smoke_awr/src/data_manipulation/cropping/target_crop_crop_scale" # f"{parent}/labels/test"  # COCO file or VOC directory or YOLO directory
+images_dir = f"{parent}/images/test"
+anno_path =  f"{parent}/labels/test"  # COCO file or VOC directory or YOLO directory
 #anno_path = "/lab/projects/fire_smoke_awr/data/datasets/.HPWREN_FigLib/jsons/hpwren_target_test.json"
 anno_type = "yolo"  # "coco", "voc", or "yolo"
 class_list = ["fire", "smoke"]  # Example: ["fire", "smoke"] for YOLO, else keep as None
