@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 # ================= CONFIG =================
 # Set your folders and options here.
-GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"     # contains images/test and labels/test
-PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set/skyline_crop/skyline_crop_window_800"  # e.g., "/path/to/pred_labels" (YOLO txt)
+GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_smoke"     # contains images/test and labels/test
+PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/RTDETR/early_fire_crop_aug/early_smoke/target_cropping/window_1100" 
 IOU_THRESH: float = 0.5
 MAX_DETS: Optional[int] = 100  # e.g., 100 to cap per-image detections
 SAVE_JSON: Optional[str] = None # e.g., "/path/to/results.json"
@@ -116,6 +116,7 @@ def evaluate_directories( # change it so it takes in objects instead of paths.
     # Group data by class
     gts_by_class: Dict[int, Dict[str, List[Tuple]]] = defaultdict(lambda: defaultdict(list))
     preds_by_class: Dict[int, Dict[str, List[Tuple]]] = defaultdict(lambda: defaultdict(list))
+    
 
     for img_id in image_ids:
         gt_path = gt_files.get(img_id)
@@ -141,6 +142,7 @@ def evaluate_directories( # change it so it takes in objects instead of paths.
     total_tp = total_fp = total_fn = 0
 
     classes = sorted(set(list(gts_by_class.keys()) + list(preds_by_class.keys())))
+    
     for cls in classes:
         # Flatten predictions for this class across images, sort by score
         flat_preds: List[Tuple[str, Tuple]] = []

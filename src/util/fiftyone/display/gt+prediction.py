@@ -4,12 +4,12 @@ import fiftyone.core.labels as fol
 from tqdm import tqdm
 
 # ================== CONFIG ==================
-parent = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"
-dataset_name = "debugging"
+parent = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire_test_clean"
+dataset_name = "original_vs_crop_aug"
 
 predictions = {
-    "original" : "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set/labels",
-    "skyline_cropped" : "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set/skyline_crop/skyline_crop_window_800"
+    "original" : "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_crop_aug/ef_test_clean/labels",
+    "cropped"  : "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_crop_aug/ef_test_clean/target_crop_dynamic/window_850"
 }
 
 # --- Alternate Port Config ---

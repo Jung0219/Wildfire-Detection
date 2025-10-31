@@ -7,9 +7,9 @@ from torchvision.ops import nms
 from tqdm import tqdm
 
 # ================= CONFIG =================
-GT_DIR      = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"
-PARENT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug"
-YOLO_MODEL  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/train/weights/best.pt"
+GT_DIR      = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/all"
+PARENT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF_pad_aug/EF_all"
+YOLO_MODEL  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF_pad_aug/train/weights/best.pt"
 
 ## best values 
 INTERMEDIATE_SIZE = 780
@@ -18,7 +18,7 @@ SAVE_IMG = False
 
 # ==========================================
 IMAGE_DIR = os.path.join(GT_DIR, "images/test")
-OUTPUT_DIR = os.path.join(PARENT_DIR, "top_only")
+OUTPUT_DIR = os.path.join(PARENT_DIR, "composites")
 composite_dir = os.path.join(OUTPUT_DIR, "composite_images")
 if SAVE_IMG:
     os.makedirs(composite_dir, exist_ok=True)
@@ -242,15 +242,8 @@ if __name__ == "__main__":
                 dets_bottom.append(mapped)
             else:
                 dets_top.append(mapped)
-        """
-                filtered_top = []
-                for det in dets_top:
-                    cls_id, xc, yc, w, h, conf, x1, y1, x2, y2 = det
-                    box_w = x2 - x1
-                    box_h = y2 - y1
-                    filtered_top.append(det)
-        """
-        merged = dets_top # dets_bottom + dets_top
+
+        merged = dets_bottom + dets_top
         if NMS_IOU_THRESH and NMS_IOU_THRESH > 0:
             final_dets = apply_nms(merged, NMS_IOU_THRESH, W, H)
         else:

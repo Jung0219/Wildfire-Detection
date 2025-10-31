@@ -7,8 +7,8 @@ from torchvision.ops import nms
 from tqdm import tqdm
 
 # ================= CONFIG =================
-GT_DIR      = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"
-PARENT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set/target_crop_fixed_window"
+GT_DIR      = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire_test_clean"
+PARENT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set_clean"
 YOLO_MODEL  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/train/weights/best.pt"
 
 INTERMEDIATE_SIZE = 780
@@ -64,7 +64,7 @@ def load_gt_center(label_path, use_mean=False):
 
 
 def generate_crop_fixed(original_image, object_center_norm, intermediate_size,
-                        crop_w=640, crop_h=280, anchor_x_frac=0.5, anchor_y_frac=0.25):
+                        crop_w=640, crop_h=280, anchor_x_frac=0.5, anchor_y_frac=0.5):
     """
     Generates a fixed-size crop (default 640x280) around an anchor position 
     derived from the normalized object center. Uses an intermediate upscale.
@@ -185,12 +185,10 @@ if __name__ == "__main__":
         # --- Generate crop ---
         cropped, meta = generate_crop_fixed(original, obj_center, INTERMEDIATE_SIZE)
 
-        if SAVE_IMG:
-            cv2.imwrite(out_crop, cropped)
-
         # --- Run YOLO ---
         results = model.predict(cropped, imgsz=640, conf=0.001, verbose=False)[0]
         dets = []
+        mapped_preds = []
         for box_xyxy, conf, cls_id in zip(
             results.boxes.xyxy.cpu().numpy(),
             results.boxes.conf.cpu().numpy(),
@@ -198,6 +196,47 @@ if __name__ == "__main__":
         ):
             mapped = yolo_to_original_crop_xyxy(box_xyxy, meta, conf, cls_id)
             dets.append(mapped)
+            mapped_preds.append(mapped)
+
+
+        # --- Visualization ---
+        if SAVE_IMG:
+            vis_image = cv2.resize(original, (meta["res_inter_w"], meta["res_inter_h"]))
+
+            # Crop boundary (blue)
+            crop_x1, crop_y1 = meta["crop_x1"], meta["crop_y1"]
+            crop_x2 = crop_x1 + cropped.shape[1]
+            crop_y2 = crop_y1 + cropped.shape[0]
+            cv2.rectangle(vis_image, (crop_x1, crop_y1), (crop_x2, crop_y2), (255, 0, 0), 1)
+            cv2.putText(vis_image, f"CROP ({cropped.shape[1]}x{cropped.shape[0]})",
+                        (crop_x1, max(20, crop_y1 - 10)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 1)
+
+            # GT boxes (green)
+            if os.path.exists(label_path):
+                with open(label_path, "r") as f:
+                    for line in f:
+                        parts = line.strip().split()
+                        if len(parts) >= 5:
+                            cls_id, xc, yc, w, h = map(float, parts[:5])
+                            x1 = int((xc - w / 2) * meta["res_inter_w"])
+                            y1 = int((yc - h / 2) * meta["res_inter_h"])
+                            x2 = int((xc + w / 2) * meta["res_inter_w"])
+                            y2 = int((yc + h / 2) * meta["res_inter_h"])
+                            cv2.rectangle(vis_image, (x1, y1), (x2, y2), (0, 255, 0), 1)
+                            cv2.putText(vis_image, f"GT {int(cls_id)}", (x1, max(20, y1 - 10)),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
+            # Predictions (red)
+            for pred in mapped_preds:
+                _, xc, yc, w, h, conf, x1, y1, x2, y2 = pred
+                x1, y1 = int(x1 * meta["scale_inter"]), int(y1 * meta["scale_inter"])
+                x2, y2 = int(x2 * meta["scale_inter"]), int(y2 * meta["scale_inter"])
+                cv2.rectangle(vis_image, (x1, y1), (x2, y2), (0, 0, 255), 1)
+                cv2.putText(vis_image, f"Pred {conf:.2f}", (x1, y2 + 12),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+
+            cv2.imwrite(out_crop, vis_image)
 
         # --- Apply NMS if needed ---
         if NMS_IOU_THRESH and NMS_IOU_THRESH > 0:

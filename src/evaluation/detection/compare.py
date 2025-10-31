@@ -6,9 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ================= CONFIG =================
-GT_DIR: str        = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"     # contains images/test and labels/test
-PRED_BASELINE: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_training_test_set/labels"  # e.g., "/path/to/pred_labels"
-PRED_NEW: str      = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_training_test_set/target_cropping/target_crop_dynamic_window_800"
+GT_DIR: str        = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire_test_clean"     # contains images/test and labels/test
+PRED_BASELINE: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set_clean/labels"  # e.g., "/path/to/pred_labels"
+PRED_NEW: str      = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set_clean/target_crop_dynamic_window_800"
 IOU_THRESH: float = 0.5
 MAX_DETS: Optional[int] = 100
 CONF_GRID_STEPS: int = 201
