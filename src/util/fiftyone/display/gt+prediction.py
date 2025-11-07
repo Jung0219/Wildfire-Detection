@@ -4,12 +4,14 @@ import fiftyone.core.labels as fol
 from tqdm import tqdm
 
 # ================== CONFIG ==================
-parent = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire_test_clean"
-dataset_name = "original_vs_crop_aug"
+parent = "/lab/projects/fire_smoke_awr/data/detection/training/ABCDE_all/ABCDE_all_gt_1080/split"
+dataset_name = "resolution_difference"
 
 predictions = {
-    "original" : "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_crop_aug/ef_test_clean/labels",
-    "cropped"  : "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_crop_aug/ef_test_clean/target_crop_dynamic/window_850"
+    "500": "/lab/projects/fire_smoke_awr/outputs/yolo/detection/resolution_difference/500/test/labels",
+    "640" : "/lab/projects/fire_smoke_awr/outputs/yolo/detection/resolution_difference/640/test/labels",
+    "900": "/lab/projects/fire_smoke_awr/outputs/yolo/detection/resolution_difference/900/test/labels",
+    "1080": "/lab/projects/fire_smoke_awr/outputs/yolo/detection/resolution_difference/1080/test/labels",
 }
 
 # --- Alternate Port Config ---

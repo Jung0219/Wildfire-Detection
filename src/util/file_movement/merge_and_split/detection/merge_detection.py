@@ -4,14 +4,17 @@ from tqdm import tqdm
 
 # === Provide list of parent folders here ===
 parent_folders = [
-    "/lab/projects/fire_smoke_awr/data/detection/test_sets/ABCDE_noEF_10%",
-    "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/all"
+    "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/A/original",
+    "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/B/original",
+    "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/C/original",
+    "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/D/original",
+    "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/E/original",
 ]
 # === Destination merged folder ===
-merged_dir = "/lab/projects/fire_smoke_awr/data/detection/test_sets/ef+10%"
+merged_dir = "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/ABCDE_all"
 
-merged_images_dir = os.path.join(merged_dir, "images/test")
-merged_annos_dir = os.path.join(merged_dir, "labels/test")
+merged_images_dir = os.path.join(merged_dir, "images")
+merged_annos_dir = os.path.join(merged_dir, "labels")
 
 # Create merged directories
 os.makedirs(merged_images_dir, exist_ok=True)
@@ -20,8 +23,8 @@ os.makedirs(merged_annos_dir, exist_ok=True)
 total_images = 0
 
 for parent in parent_folders:
-    images_dir = os.path.join(parent, "images/test")
-    annos_dir = os.path.join(parent, "labels/test")
+    images_dir = os.path.join(parent, "images")
+    annos_dir = os.path.join(parent, "labels")
 
     if not os.path.isdir(images_dir) or not os.path.isdir(annos_dir):
         raise RuntimeError(f"Missing required folders in '{parent}'.")

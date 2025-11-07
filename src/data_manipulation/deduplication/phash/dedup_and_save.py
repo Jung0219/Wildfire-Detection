@@ -5,17 +5,17 @@ import imagehash
 from tqdm import tqdm
 
 # ==== CONFIGURATION ====
-PARENT_DIR = "/lab/projects/fire_smoke_awr/data/detection/datasets/data_mining/early_fire_A_only"
-OUTPUT_DIR = "/lab/projects/fire_smoke_awr/data/detection/datasets/data_mining/early_fire_A_only/dedup_phash3"
-THRESHOLD  = 3  # Hamming distance threshold
+PARENT_DIR = "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/E/original"
+OUTPUT_DIR = "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/E/deduplicated/phash10"
+THRESHOLD  = 10  # Hamming distance threshold
 # ========================
 
 def deduplicate_with_labels(parent_dir, output_dir, threshold=10):
-    input_img_dir = os.path.join(parent_dir, "images/test")
-    input_lbl_dir = os.path.join(parent_dir, "labels/test")
+    input_img_dir = os.path.join(parent_dir, "images")
+    input_lbl_dir = os.path.join(parent_dir, "labels")
 
-    output_img_dir = os.path.join(output_dir, "images/test")
-    output_lbl_dir = os.path.join(output_dir, "labels/test")
+    output_img_dir = os.path.join(output_dir, "images")
+    output_lbl_dir = os.path.join(output_dir, "labels")
 
     os.makedirs(output_img_dir, exist_ok=True)
     os.makedirs(output_lbl_dir, exist_ok=True)
