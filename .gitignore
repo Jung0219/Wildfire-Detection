@@ -30,3 +30,8 @@ outputs/yolo/train.yaml
 src/models/yolo/eval_metrics.py
 outputs/yolo/eval_metrics.py
 src/models/yolo/detection/train.py
+
+# Node.js related files
+node_modules/
+package-lock.json
+package.json
