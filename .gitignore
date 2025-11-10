@@ -17,3 +17,15 @@ weights/
 # Ignore common large or generated files
 *.log
 *.tmp
+
+# files that frequently change
+src/models/yolo/test.py
+outputs/yolo/test.py
+src/models/yolo/train.py
+outputs/yolo/train.py
+src/models/yolo/test.yaml
+outputs/yolo/test.yaml
+src/models/yolo/train.yaml
+outputs/yolo/train.yaml
+src/models/yolo/eval_metrics.py
+outputs/yolo/eval_metrics.py
