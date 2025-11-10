@@ -6,7 +6,7 @@ import fiftyone.core.labels as fol
 from tqdm import tqdm
 
 # === Set your paths here ===
-parent = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire_test_clean"
+parent = "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/training/early_smoke/composite"
 dataset_name = "check"
 
 # === Set your paths here ===

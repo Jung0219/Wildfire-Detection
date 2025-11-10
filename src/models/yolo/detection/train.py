@@ -10,6 +10,7 @@ start_time = datetime.now()
 print(f"[INFO] Training started at {start_time}")
 
 model.train(
+<<<<<<< HEAD
     data="/lab/projects/fire_smoke_awr/src/models/yolo/detection/train.yaml",
     project=project_dir,
     name="train",
@@ -17,6 +18,18 @@ model.train(
     imgsz=896,
     batch=16,
     resume=False,
+=======
+    data="/lab/biohpc/ComputerVisionAI/fire_smoke_awr/src/models/yolo/detection/train.yaml",
+    project=project_dir,
+    name="train",
+    epochs=100,
+    imgsz=640,
+    batch=16,
+    optimizer="AdamW",
+    patience=15,
+    resume=False,
+    device=4
+>>>>>>> 20e489c07ba06d3fcc44f6bcb36693049d328deb
 )
 
 end_time = datetime.now()

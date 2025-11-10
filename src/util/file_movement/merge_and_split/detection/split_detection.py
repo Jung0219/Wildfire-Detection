@@ -1,10 +1,11 @@
 import os
 import shutil
 import random
+from tqdm import tqdm
 
 # ==== EDIT THESE VARIABLES ====
-input_dir = '/lab/projects/fire_smoke_awr/data/detection/datasets/data_mining/early_smoke_A'
-output_dir = '/lab/projects/fire_smoke_awr/data/detection/training/early_smoke_A'
+input_dir = '/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/processed/early_smoke_phash3_2%'
+output_dir = '/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/training/early_smoke/composite'
 train_ratio = 0.7
 val_ratio = 0.1
 test_ratio = 0.2
@@ -14,8 +15,8 @@ seed = 42
 def split_dataset():
     assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-6, "Ratios must sum to 1."
 
-    input_images_dir = os.path.join(input_dir, 'images/test')
-    input_labels_dir = os.path.join(input_dir, 'labels/test')
+    input_images_dir = os.path.join(input_dir, 'images')
+    input_labels_dir = os.path.join(input_dir, 'labels')
 
     # Collect image files (only those with existing corresponding labels)
     images = [f for f in os.listdir(input_images_dir)
@@ -37,7 +38,7 @@ def split_dataset():
         'test': images[val_end:]
     }
 
-    for split, files in splits.items():
+    for split, files in tqdm(splits.items(), desc="splitting..."):
         img_out_dir = os.path.join(output_dir, 'images', split)
         lbl_out_dir = os.path.join(output_dir, 'labels', split)
         os.makedirs(img_out_dir, exist_ok=True)
