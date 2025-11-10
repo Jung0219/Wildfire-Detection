@@ -1,3 +1,24 @@
+"""
+This script implements a multi-resolution object detection pipeline using a YOLO model.
+
+The pipeline processes a directory of images and applies one of two strategies:
+1.  For images that are taller than wide or smaller than 640x640, it applies
+    standard letterboxing (padding) to resize them to 640x640.
+2.  For wide images (width > height), it creates a special 640x640 "composite"
+    image. This composite consists of two parts stacked vertically:
+    - A bottom part: The original image resized to fit a 640px width.
+    - A top part: A high-resolution crop from a specific area of the original
+      image, often guided by a skyline detection algorithm to focus on regions
+      of interest.
+
+After preprocessing, the script runs a YOLO model on the 640x640 image. The
+detected bounding boxes are then transformed back to the original image's
+coordinate system. Non-Maximum Suppression (NMS) is applied to filter
+overlapping detections.
+
+The final detections are saved as YOLO-formatted .txt files, one for each
+input image.
+"""
 import cv2
 import numpy as np
 import os
@@ -7,9 +28,9 @@ from torchvision.ops import nms
 from tqdm import tqdm
 
 # ================= CONFIG =================
-GT_DIR      = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/all"
-PARENT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF_pad_aug/EF_all"
-YOLO_MODEL  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF_pad_aug/train/weights/best.pt"
+GT_DIR      = "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/training/early_smoke/original"
+PARENT_DIR  = "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/outputs/yolo/detection/ABCDE_all"
+YOLO_MODEL  = "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/outputs/yolo/detection/ABCDE_all/train/weights/best.pt"
 
 ## best values 
 INTERMEDIATE_SIZE = 780
@@ -26,6 +47,26 @@ if SAVE_IMG:
 
 
 def detect_skyline_y(img_bgr, cb_min=120, cb_max=255, cr_min=0, cr_max=130, sky_ratio_thresh=5.0):
+    """
+    Detects the vertical position of a potential skyline in an image.
+
+    This function analyzes the image in the YCrCb color space to identify a
+    horizontal line that separates the sky from the ground. It works by
+    finding a sharp change in the number of "sky-colored" pixels per row.
+
+    Args:
+        img_bgr (np.ndarray): The input image in BGR format.
+        cb_min (int): Minimum Cb value for sky color detection.
+        cb_max (int): Maximum Cb value for sky color detection.
+        cr_min (int): Minimum Cr value for sky color detection.
+        cr_max (int): Maximum Cr value for sky color detection.
+        sky_ratio_thresh (float): Threshold for the ratio of sky pixels above
+                                  vs. below the candidate skyline.
+
+    Returns:
+        int: The y-coordinate of the detected skyline, or -1 if no skyline
+             is found that meets the ratio threshold.
+    """
     H, W = img_bgr.shape[:2]
     ycrcb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2YCrCb)
     Y, Cr, Cb = cv2.split(ycrcb)
@@ -51,6 +92,36 @@ def detect_skyline_y(img_bgr, cb_min=120, cb_max=255, cr_min=0, cr_max=130, sky_
 
 def generate_composite_640x640(original_image, object_center_norm, intermediate_size,
                                anchor_x_frac=0.5, anchor_y_frac=0.25):
+    """
+    Generates a 640x640 composite image from a wider original image.
+
+    The composite image is created by stacking two components vertically:
+    1. A top band: A cropped region from an upscaled "intermediate" version
+       of the original image. The crop is centered around a specified object
+       center.
+    2. A bottom band: The original image resized to a width of 640 pixels,
+       maintaining its aspect ratio.
+
+    This allows for a high-resolution view of a region of interest (top) while
+    maintaining the overall context of the scene (bottom).
+
+    Args:
+        original_image (np.ndarray): The original input image.
+        object_center_norm (tuple): Normalized (x, y) coordinates of the
+                                    object/region of interest.
+        intermediate_size (int): The size to which the largest dimension of the
+                                 original image is scaled for the intermediate
+                                 (top crop) version.
+        anchor_x_frac (float): The horizontal anchor point within the crop window.
+        anchor_y_frac (float): The vertical anchor point within the crop window.
+
+    Returns:
+        tuple: A tuple containing:
+            - np.ndarray: The generated 640x640 composite image.
+            - dict: A metadata dictionary with parameters used for the
+                    transformation, required for mapping coordinates back to the
+                    original image.
+    """
     TARGET_SIZE = 640
     orig_h, orig_w = original_image.shape[:2]
 
@@ -109,6 +180,28 @@ def generate_composite_640x640(original_image, object_center_norm, intermediate_
 
 
 def yolo_to_original(box_norm, meta, conf, cls_id, orig_w, orig_h, is_bottom):
+    """
+    Converts YOLO detection coordinates from a processed image back to original image coordinates.
+
+    This function handles three cases:
+    1. Detections on a padded/downscaled image.
+    2. Detections in the bottom band of a composite image.
+    3. Detections in the top band of a composite image.
+
+    Args:
+        box_norm (tuple): Normalized YOLO box coordinates (xc, yc, w, h).
+        meta (dict): Metadata from the image processing step (padding or composite generation).
+        conf (float): The confidence score of the detection.
+        cls_id (int): The class ID of the detection.
+        orig_w (int): The width of the original image.
+        orig_h (int): The height of the original image.
+        is_bottom (bool): True if the detection is from the bottom band of a composite image.
+
+    Returns:
+        list: A list containing the detection information in the original image's
+              coordinate system: [class_id, xc_norm, yc_norm, w_norm, h_norm,
+              confidence, x1, y1, x2, y2].
+    """
     xc, yc, w, h = box_norm
     x1 = (xc - w/2) * 640
     y1 = (yc - h/2) * 640
@@ -144,6 +237,16 @@ def yolo_to_original(box_norm, meta, conf, cls_id, orig_w, orig_h, is_bottom):
 
 
 def iou(box1, box2):
+    """
+    Calculates the Intersection over Union (IoU) of two bounding boxes.
+
+    Args:
+        box1 (list or tuple): The first bounding box (x1, y1, x2, y2).
+        box2 (list or tuple): The second bounding box (x1, y1, x2, y2).
+
+    Returns:
+        float: The IoU score.
+    """
     xa = max(box1[0], box2[0])
     ya = max(box1[1], box2[1])
     xb = min(box1[2], box2[2])
@@ -156,6 +259,24 @@ def iou(box1, box2):
 
 
 def apply_nms(dets, iou_thresh, orig_w, orig_h):
+    """
+    Applies Non-Maximum Suppression (NMS) to a list of detections.
+
+    NMS is applied per-class to remove redundant, overlapping bounding boxes.
+
+    Args:
+        dets (list): A list of detections. Each detection is a list containing
+                     at least [class_id, ..., confidence, x1, y1, x2, y2].
+        iou_thresh (float): The IoU threshold for suppression.
+        orig_w (int): The original image width (unused in current implementation,
+                      but good for context).
+        orig_h (int): The original image height (unused in current implementation,
+                      but good for context).
+
+    Returns:
+        list: A list of filtered detections, where each detection is in the
+              format [cls_id, xc, yc, w, h, conf].
+    """
     if not dets:
         return []
 
@@ -178,6 +299,24 @@ def apply_nms(dets, iou_thresh, orig_w, orig_h):
 
 
 def pad_or_downscale_to_640(img, target_size=640, color=(114, 114, 114)):
+    """
+    Pads or downscales an image to fit within a target square size.
+
+    If the image is larger than the target size in any dimension, it is
+    downscaled while maintaining aspect ratio. Then, it is padded to fill
+    the target square.
+
+    Args:
+        img (np.ndarray): The input image.
+        target_size (int): The target height and width.
+        color (tuple): The BGR color for padding.
+
+    Returns:
+        tuple: A tuple containing:
+            - np.ndarray: The processed (padded/downscaled) image.
+            - tuple: A tuple of (x_offset, y_offset, scale) used for the
+                     transformation.
+    """
     h, w = img.shape[:2]
 
     if h > target_size or w > target_size:

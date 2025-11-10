@@ -1,4 +1,4 @@
-path: /lab/projects/fire_smoke_awr/data/detection/training/early_fire
+path: /lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/training/early_smoke/composite
 train: images/train
 val: images/val
 

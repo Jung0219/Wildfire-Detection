@@ -26,11 +26,17 @@ DEFAULT_LABELS_DIR = Path(
 )
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "small_box_samples"
 DEFAULT_BINS: Sequence[tuple[float, float]] = [
-    (0.0, 0.2),
-    (0.2, 0.4),
-    (0.4, 0.6),
-    (0.6, 0.8),
-    (0.8, 1.0),
+    # 10 bins from 0.0% to 5.0% (each bin spans 0.5%)
+    (0.0, 0.5),
+    (0.5, 1.0),
+    (1.0, 1.5),
+    (1.5, 2.0),
+    (2.0, 2.5),
+    (2.5, 3.0),
+    (3.0, 3.5),
+    (3.5, 4.0),
+    (4.0, 4.5),
+    (4.5, 5.0),
 ]
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG")
 

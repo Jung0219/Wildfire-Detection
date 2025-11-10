@@ -1,5 +1,6 @@
 """
-Generate a square composite image (and updated YOLO labels) for a single sample.
+Generate square composite images (plus YOLO labels) for every sample in a folder,
+producing multiple horizontal-crop variations per image for augmentation review.
 
 Example:
     python src/data_manipulation/composite_generation/single_image_composite.py
@@ -10,7 +11,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Sequence, Tuple
+from typing import List, Sequence, Tuple
 
 import cv2
 import numpy as np
@@ -18,17 +19,21 @@ from tqdm import tqdm
 
 # ====================== CONFIG ======================
 CONFIG = {
-    # Paths for the single sample you want to process
-    "IMAGE_PATH": "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/A/deduplicated/dedup_phash10/images/bothFireAndSmoke_UAV000000.jpg",
-    "LABEL_PATH": "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/A/deduplicated/dedup_phash10/labels/bothFireAndSmoke_UAV000000.txt",
-    # Where to save the composite image + labels
-    "OUT_IMAGE_PATH": "/lab/projects/fire_smoke_awr/outputs/composite_generation/sample_composite.jpg",
-    "OUT_LABEL_PATH": "/lab/projects/fire_smoke_awr/outputs/composite_generation/sample_composite.txt",
+    # Parent directories with YOLO-style splits (images/ + labels/)
+    "INPUT_PARENT": "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/training/early_smoke/original",
+    "OUTPUT_PARENT": "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/training/early_smoke/composite",
+    "IMAGE_SUBDIR": "images/val",
+    "LABEL_SUBDIR": "labels/val",
+    "IMAGE_EXTENSIONS": [".jpg", ".jpeg", ".png"],
     # Canvas and intermediate sizing
     "CANVAS_SIZE": 640,
-    "INTERMEDIATE_SIZE": 1024,
-    # Choose which bounding box to center in the crop window (0 = first box)
+    "INTERMEDIATE_SIZE": 780,
+    # Choose which bounding box to influence the crop window (0 = first box)
     "PRIMARY_BOX_INDEX": 0,
+    # Where should that box land horizontally within the crop? (0=left edge, 1=right edge)
+    "HORIZONTAL_FOCI": [0.25, 0.50, 0.75],
+    # Optional limit if you only want the first N images (None = all)
+    "MAX_SAMPLES": None,
 }
 # ====================================================
 
@@ -63,6 +68,14 @@ def load_boxes(label_path: Path) -> List[YoloBox]:
         return []
     with label_path.open() as f:
         return [box for line in f if (box := YoloBox.from_line(line))]
+    """
+    boxes = []
+        for line in f:
+            box = YoloBox.from_line(line)
+            if box:
+                boxes.append(box)
+        return boxes
+    """
 
 
 def save_boxes(boxes: Sequence[YoloBox], label_path: Path) -> None:
@@ -121,12 +134,23 @@ def clamp(val: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, val))
 
 
+def list_image_files(image_dir: Path, extensions: Sequence[str]) -> List[Path]:
+    allowed = {ext.lower() for ext in extensions}
+    files = [
+        path
+        for path in image_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in allowed
+    ]
+    return sorted(files)
+
+
 def build_bottom_band(
     image: np.ndarray,
     boxes: Sequence[YoloBox],
     canvas: np.ndarray,
     canvas_size: int,
 ) -> Tuple[np.ndarray, List[YoloBox], float, int, int]:
+    # create bottom band, place the resized images
     orig_h, orig_w = image.shape[:2]
     longest = max(orig_w, orig_h)
     scale = canvas_size / longest
@@ -137,6 +161,7 @@ def build_bottom_band(
     y_off = canvas_size - new_h
     canvas[y_off : y_off + new_h, x_off : x_off + new_w] = resized
 
+    # adjust yolo labels
     transformed: List[YoloBox] = []
     for box in tqdm(boxes, desc="Transforming bottom boxes", leave=False):
         xc_px, yc_px, w_px, h_px = to_pixels(box, orig_w, orig_h)
@@ -172,6 +197,7 @@ def build_top_band(
     top_height: int,
     intermediate_size: int,
     primary_box_idx: int,
+    horizontal_focus: float,
 ) -> Tuple[np.ndarray, List[YoloBox]]:
     if top_height <= 0:
         return canvas, []
@@ -196,7 +222,8 @@ def build_top_band(
 
     crop_w = canvas_size
     crop_h = top_height
-    crop_x1 = int(round(obj_x - crop_w / 2))
+    focus = clamp(horizontal_focus, 0.0, 1.0)
+    crop_x1 = int(round(obj_x - focus * crop_w))
     crop_y1 = int(round(obj_y - crop_h / 2))
     crop_x1 = int(clamp(crop_x1, 0, max(0, padded_w - crop_w)))
     crop_y1 = int(clamp(crop_y1, 0, max(0, padded_h - crop_h)))
@@ -211,17 +238,24 @@ def build_top_band(
         xc_px, yc_px, w_px, h_px = to_pixels(box, orig_w, orig_h)
         xc_scaled = xc_px * scale_inter + pad_left
         yc_scaled = yc_px * scale_inter + pad_top
-        xc_crop = xc_scaled - crop_x1
-        yc_crop = yc_scaled - crop_y1
-        if not (0 <= xc_crop <= crop_w and 0 <= yc_crop <= crop_h):
+        x1 = xc_scaled - (w_px * scale_inter) / 2
+        y1 = yc_scaled - (h_px * scale_inter) / 2
+        x2 = xc_scaled + (w_px * scale_inter) / 2
+        y2 = yc_scaled + (h_px * scale_inter) / 2
+
+        x1_crop = max(0, x1 - crop_x1)
+        x2_crop = min(crop_w, x2 - crop_x1)
+        y1_crop = max(0, y1 - crop_y1)
+        y2_crop = min(crop_h, y2 - crop_y1)
+
+        if x2_crop <= x1_crop or y2_crop <= y1_crop:
             continue
 
-        w_scaled = w_px * scale_inter
-        h_scaled = h_px * scale_inter
-        w_canvas = w_scaled / canvas_size
-        h_canvas = h_scaled / canvas_size
-        xc_canvas = xc_crop / canvas_size
-        yc_canvas = yc_crop / canvas_size
+        xc_canvas = ((x1_crop + x2_crop) / 2) / canvas_size
+        yc_canvas = ((y1_crop + y2_crop) / 2) / canvas_size
+        w_canvas = (x2_crop - x1_crop) / canvas_size
+        h_canvas = (y2_crop - y1_crop) / canvas_size
+
         transformed.append(
             YoloBox(cls=box.cls, xc=xc_canvas, yc=yc_canvas, w=w_canvas, h=h_canvas)
         )
@@ -229,47 +263,111 @@ def build_top_band(
     return canvas, transformed
 
 
-def main() -> None:
-    print("Running composite generation with CONFIG:")
-    print(json.dumps(CONFIG, indent=2))
-
-    image_path = Path(CONFIG["IMAGE_PATH"]).expanduser()
-    label_path = Path(CONFIG["LABEL_PATH"]).expanduser()
-    out_image_path = Path(CONFIG["OUT_IMAGE_PATH"]).expanduser()
-    out_label_path = Path(CONFIG["OUT_LABEL_PATH"]).expanduser()
-    canvas_size = int(CONFIG["CANVAS_SIZE"])
-    intermediate_size = int(CONFIG["INTERMEDIATE_SIZE"])
-    primary_idx = int(CONFIG["PRIMARY_BOX_INDEX"])
-
+def process_sample(
+    image_path: Path,
+    label_path: Path,
+    out_image_dir: Path,
+    out_label_dir: Path,
+    config: dict,
+) -> List[dict]:
     image = cv2.imread(str(image_path))
     if image is None:
         raise FileNotFoundError(f"Failed to read image: {image_path}")
     boxes = load_boxes(label_path)
 
-    canvas = np.zeros((canvas_size, canvas_size, 3), dtype=image.dtype)
-    canvas, bottom_boxes, _, _, top_height = build_bottom_band(image, boxes, canvas, canvas_size)
-    canvas, top_boxes = build_top_band(
-        image,
-        boxes,
-        canvas,
-        canvas_size,
-        top_height,
-        intermediate_size,
-        primary_idx,
+    canvas_size = int(config["CANVAS_SIZE"])
+    intermediate_size = int(config["INTERMEDIATE_SIZE"])
+    primary_idx = int(config["PRIMARY_BOX_INDEX"])
+    horizontal_foci = config.get("HORIZONTAL_FOCI", [0.5])
+
+    base_canvas = np.zeros((canvas_size, canvas_size, 3), dtype=image.dtype)
+    base_canvas, bottom_boxes, _, _, top_height = build_bottom_band(
+        image, boxes, base_canvas, canvas_size
     )
 
-    out_image_path.parent.mkdir(parents=True, exist_ok=True)
-    cv2.imwrite(str(out_image_path), canvas)
+    out_image_dir.mkdir(parents=True, exist_ok=True)
+    out_label_dir.mkdir(parents=True, exist_ok=True)
 
-    combined_boxes = top_boxes + bottom_boxes
-    save_boxes(combined_boxes, out_label_path)
-    debug_path = out_image_path.with_name(out_image_path.stem + "_boxes.jpg")
-    draw_boxes(canvas, combined_boxes, debug_path)
+    results = []
+    for focus in horizontal_foci:
+        variant_canvas = base_canvas.copy()
+        variant_canvas, top_boxes = build_top_band(
+            image,
+            boxes,
+            variant_canvas,
+            canvas_size,
+            top_height,
+            intermediate_size,
+            primary_idx,
+            focus,
+        )
 
-    print(f"Composite saved to: {out_image_path}")
-    print(f"Wrote {len(combined_boxes)} labels to: {out_label_path}")
-    print(f"Box visualization saved to: {debug_path}")
-    print(f"Top band height: {top_height}px; bottom height: {canvas_size - top_height}px")
+        suffix = f"focus{int(round(focus * 100)):02d}"
+        variant_image_path = out_image_dir / f"{image_path.stem}_{suffix}{image_path.suffix}"
+        variant_label_path = out_label_dir / f"{image_path.stem}_{suffix}.txt"
+        combined_boxes = top_boxes + bottom_boxes
+        cv2.imwrite(str(variant_image_path), variant_canvas)
+        save_boxes(combined_boxes, variant_label_path)
+
+        results.append(
+            {
+                "focus": focus,
+                "image": variant_image_path,
+                "label": variant_label_path,
+                "top_height": top_height,
+            }
+        )
+    return results
+
+
+def main() -> None:
+    print("Running composite generation with CONFIG:")
+    print(json.dumps(CONFIG, indent=2))
+
+    input_parent = Path(CONFIG["INPUT_PARENT"]).expanduser()
+    output_parent = Path(CONFIG["OUTPUT_PARENT"]).expanduser()
+    image_dir = input_parent / CONFIG["IMAGE_SUBDIR"]
+    label_dir = input_parent / CONFIG["LABEL_SUBDIR"]
+    out_image_dir = output_parent / CONFIG["IMAGE_SUBDIR"]
+    out_label_dir = output_parent / CONFIG["LABEL_SUBDIR"]
+
+    if not image_dir.exists():
+        raise FileNotFoundError(f"Image directory not found: {image_dir}")
+    if not label_dir.exists():
+        raise FileNotFoundError(f"Label directory not found: {label_dir}")
+
+    out_image_dir.mkdir(parents=True, exist_ok=True)
+    out_label_dir.mkdir(parents=True, exist_ok=True)
+
+    image_files = list_image_files(image_dir, CONFIG["IMAGE_EXTENSIONS"])
+    if not image_files:
+        print("No images found matching extensions; exiting.")
+        return
+
+    max_samples = CONFIG.get("MAX_SAMPLES")
+    if max_samples is not None:
+        image_files = image_files[: int(max_samples)]
+
+    total_composites = 0
+    missing_labels = 0
+
+    for img_path in tqdm(image_files, desc="Processing images"):
+        label_path = label_dir / f"{img_path.stem}.txt"
+        if not label_path.exists():
+            print(f"Warning: missing label for {img_path.name}, skipping.")
+            missing_labels += 1
+            continue
+
+        results = process_sample(img_path, label_path, out_image_dir, out_label_dir, CONFIG)
+        total_composites += len(results)
+        # Optional hook: inspect `results` here if you want per-image logging.
+
+    processed_images = len(image_files) - missing_labels
+    print("\n=== Summary ===")
+    print(f"Images processed: {processed_images}")
+    print(f"Images skipped (missing label): {missing_labels}")
+    print(f"Composites generated: {total_composites}")
+    print(f"Outputs stored under: {output_parent}")
 
 
 if __name__ == "__main__":

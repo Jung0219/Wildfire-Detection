@@ -4,7 +4,7 @@ This script ingests a YOLO-style dataset and keeps only the samples where:
     1. The label file contains exactly one bounding box.
     2. The class id equals `CONFIG["target_class"]` (default: smoke = 1).
     3. The normalized box area is smaller than `CONFIG["max_area_percent"]`.
-    4. The image resolution meets or exceeds `CONFIG["min_resolution"]` (>=1080p by default).
+    4. At least one image dimension meets or exceeds `CONFIG["min_resolution"]` (>=1080p by default).
 
 Example:
     python filter_small_smoke_only.py
@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
+from tqdm import tqdm
+
 
 try:
     from PIL import Image
@@ -25,14 +27,14 @@ except ImportError as exc:  # pragma: no cover - dependency guard
 
 CONFIG = {
     # Source dataset (expects `images/` and `labels/` inside this folder).
-    "source_root": "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/ABCDE_all",
+    "source_root": "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/processed/early_smoke_phash3_2%",
     # Destination dataset root to receive filtered samples.
-    "output_root": "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/ABCDE_all/early_smoke",
+    "output_root": "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/processed/early_smoke_phash3_0.5%",
     "image_dirname": "images",
     "label_dirname": "labels",
     "image_extensions": [".jpg", ".jpeg", ".png", ".bmp"],
     "target_class": 1,
-    "max_area_percent": 0.05,
+    "max_area_percent": 0.5,  # percentage
     "min_resolution": (1080, 1080),  # width, height
 }
 
@@ -85,7 +87,8 @@ def filter_dataset(cfg: dict) -> None:
     missing_images = 0
     too_small_resolution = 0
 
-    for label_path in sorted(src_labels.glob("*.txt")):
+    label_paths = sorted(src_labels.glob("*.txt"))
+    for label_path in tqdm(label_paths, desc="Filtering dataset"):
         scanned += 1
         if not label_meets_criteria(label_path, cfg):
             continue
@@ -99,7 +102,7 @@ def filter_dataset(cfg: dict) -> None:
         with Image.open(image_path) as img:
             width, height = img.size
         min_width, min_height = cfg["min_resolution"]
-        if width < min_width or height < min_height:
+        if width < min_width and height < min_height:
             too_small_resolution += 1
             continue
 

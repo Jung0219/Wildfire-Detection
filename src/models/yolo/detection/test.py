@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 
 # Define paths
-parent_dir = '/lab/projects/fire_smoke_awr/outputs/yolo/detection/resolution_difference/500'
-run_name = 'test'
+parent_dir = '/lab/biohpc/ComputerVisionAI/fire_smoke_awr/outputs/yolo/detection/ABCDE_all'
+run_name = 'es_test'
 
 # Load the trained model
 model_path = os.path.join(parent_dir, 'train/weights/best.pt')
@@ -13,7 +13,7 @@ model = YOLO(model_path)
 
 # Run evaluation and save predictions
 results = model.val(
-    data='/lab/projects/fire_smoke_awr/src/models/yolo/detection/test.yaml',
+    data='/lab/biohpc/ComputerVisionAI/fire_smoke_awr/src/models/yolo/detection/test.yaml',
     project=parent_dir,
     name=run_name,
     save=True,
@@ -21,5 +21,6 @@ results = model.val(
     save_conf=True,
     verbose=True,
     cache=False,
-    conf=0.001
+    conf=0.001,
+    device = 5
 )

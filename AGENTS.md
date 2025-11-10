@@ -6,6 +6,7 @@ This project is an active research codebase. Optimize for readable experiments, 
 - Stick to Python 3.10+ with PEP 8 spacing (four spaces) and snake_case functions/modules, PascalCase classes, and UPPER_CASE constants.
 - Keep modules focused; prefer a few well-commented functions over sprawling classes. Annotate public functions with type hints and reserve inline comments for non-trivial logic.
 - Every script must open with a concise module-level docstring that states what it does and includes a concrete invocation example (for example `python src/pipeline/two_stage/classify_region.py`).
+- Write sufficient docstrings for functions, classes, and methods to clarify their purpose, arguments, and return values. This is crucial for making the code understandable.
 - Follow the “edit-at-the-top” pattern: expose inputs, outputs, and tunable parameters through a module-level CONFIG block (plain dict/constant assignments—avoid `argparse` unless absolutely necessary).
 
 ## Script Authoring Checklist
