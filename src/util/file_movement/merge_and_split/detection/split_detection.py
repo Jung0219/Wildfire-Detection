@@ -4,8 +4,8 @@ import random
 from tqdm import tqdm
 
 # ==== EDIT THESE VARIABLES ====
-input_dir = '/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/processed/early_smoke_phash3_2%'
-output_dir = '/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/training/early_smoke/composite'
+input_dir = '/lab/projects/fire_smoke_awr/data/detection/processed/pyro-sdis/cleaned'
+output_dir = '/lab/projects/fire_smoke_awr/data/detection/training/pyro-sdis_clean/original'
 train_ratio = 0.7
 val_ratio = 0.1
 test_ratio = 0.2

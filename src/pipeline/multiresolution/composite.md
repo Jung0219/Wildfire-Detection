@@ -8,6 +8,21 @@ The pipeline intelligently handles images based on their aspect ratio, applying 
 
 ---
 
+## How the Multiresolution Framework Works
+
+1. Load the source image and classify its aspect ratio (wide vs tall/small).
+2. Build a composite image at the detector’s target size:
+   - Wide images get a two-band composite: a high-res top band cropped around the skyline anchor and a bottom band with the resized full image for context.
+   - Tall or small images are resized and padded directly to the target square without band stacking.
+3. Emit a `meta` dictionary capturing every resize, crop, and pad operation.
+4. Run detection on the composite (e.g., YOLO at 640x640). Each detection is tagged with the band it came from.
+5. Map detections back to the original image coordinates using `meta`, then apply NMS or filtering as needed.
+6. Save labels (and optionally composites/debug images) so downstream steps can train/evaluate without re-running the composite builder.
+
+The `meta` bookkeeping is what makes the framework reversible: regardless of how the composite was built, boxes can be projected back to the raw image consistently.
+
+---
+
 ## General Pipeline Steps
 
 ### 1. Image Aspect Ratio Classification

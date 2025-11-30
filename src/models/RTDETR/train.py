@@ -1,7 +1,7 @@
 from datetime import datetime
 from ultralytics import RTDETR
 
-project_dir = "/lab/projects/fire_smoke_awr/outputs/RTDETR/early_fire_crop_aug"  # change as needed
+project_dir = "/lab/projects/fire_smoke_awr/outputs/RTDETR/pyro_sdis/phash10/baseline"  # change as needed
 
 model = RTDETR("/lab/projects/fire_smoke_awr/weights/detection/RTDETR/rtdetr-l.pt")  # change to yolov8s.pt, m.pt, etc. as needed
 start_time = datetime.now()

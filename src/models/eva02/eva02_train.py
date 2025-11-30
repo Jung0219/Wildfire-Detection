@@ -1,5 +1,4 @@
 import os
-import sys
 import yaml
 import pandas as pd
 import csv
@@ -13,6 +12,8 @@ from sklearn.metrics import (
     confusion_matrix,
     precision_recall_fscore_support
 )
+from pathlib import Path
+
 from eva02_model import EVA02Classifier
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -20,12 +21,8 @@ import seaborn as sns
 import numpy as np
 
 # ================= Load Config =================
-if len(sys.argv) < 2:
-    print("Usage: python eva02_train.py <config.yaml>")
-    sys.exit(1)
-
-config_path = sys.argv[1]
-with open(config_path, "r") as f:
+CONFIG_PATH = "/lab/projects/fire_smoke_awr/src/models/eva02/eva02_train.yaml"
+with open(CONFIG_PATH, "r") as f:
     CONFIG = yaml.safe_load(f)
 
 DATA_DIR       = CONFIG["DATA_DIR"]
@@ -47,7 +44,6 @@ SAVE_DIR   = os.path.join(PARENT_DIR, SAVE_SUBDIR)
 MODEL_DIR = os.path.join(SAVE_DIR, "weights")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-BEST_ACC_PATH  = os.path.join(MODEL_DIR, "best_acc.pt")
 BEST_LOSS_PATH = os.path.join(MODEL_DIR, "best_loss.pt")
 LAST_PATH      = os.path.join(MODEL_DIR, "last.pt")
 
@@ -64,10 +60,11 @@ os.makedirs(SAVE_DIR, exist_ok=True)
 MODEL_PATH = os.path.join(SAVE_DIR, "weights", "best.pt")
 
 # ---------- Save config copy ----------
-with open(os.path.join(SAVE_DIR, "config_used.yaml"), "w") as f:
+config_copy_path = os.path.join(SAVE_DIR, "config_used.yaml")
+with open(config_copy_path, "w") as f:
     yaml.dump(CONFIG, f, default_flow_style=False)
 
-print(f"[INFO] Loaded config from {config_path}")
+print(f"[INFO] Loaded config from {CONFIG_PATH}")
 print(f"[INFO] Saving run artifacts to {SAVE_DIR}")
 
 # ---------- Build model ----------
@@ -147,7 +144,6 @@ print(f"[INFO] Using scheduler: {sched_name.upper()}")
 
 
 # ---------- Training ----------
-best_acc = 0.0
 best_val_loss = float("inf")
 
 train_losses, val_losses = [], []
@@ -205,12 +201,6 @@ for epoch in range(EPOCHS):
     # step scheduler
     if scheduler:
         scheduler.step()
-
-    # save best accuracy
-    if acc > best_acc:
-        best_acc = acc
-        torch.save(model.state_dict(), BEST_ACC_PATH)
-        print(f"  >> Saved best_acc model with acc {best_acc:.4f}")
 
     # save best validation loss
     if val_loss < best_val_loss:

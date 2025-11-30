@@ -7,9 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # ================= CONFIG =================
-# Set your folders and options here.
-GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/training/early_fire"     # contains images/test and labels/test
-PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_res_diff/896/test/labels" 
+# Set your folders and options here. 
+GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/training/AD_phash3_early_smoke/original"     # contains images/test and labels/test
+PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/AdamW/800_AdamW/test/labels" 
 IOU_THRESH: float = 0.5
 MAX_DETS: Optional[int] = 100  # e.g., 100 to cap per-image detections
 SAVE_JSON: Optional[str] = None # e.g., "/path/to/results.json"

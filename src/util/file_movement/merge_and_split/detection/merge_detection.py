@@ -4,14 +4,11 @@ from tqdm import tqdm
 
 # === Provide list of parent folders here ===
 parent_folders = [
-    "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/A/deduplicated/phash10",
-    "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/B/deduplicated/phash10",
-    "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/C/deduplicated/phash10",
-    "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/D/deduplicated/phash10",
-    "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/datasets/E/deduplicated/phash10",
+    "/lab/projects/fire_smoke_awr/data/detection/datasets/A/deduplicated/phash3",
+    "/lab/projects/fire_smoke_awr/data/detection/datasets/D/deduplicated/phash3"
 ]
 # === Destination merged folder ===
-merged_dir = "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/processed/ABCDE_all/phash10"
+merged_dir = "/lab/projects/fire_smoke_awr/data/detection/processed/AD_phash3"
 
 merged_images_dir = os.path.join(merged_dir, "images")
 merged_annos_dir = os.path.join(merged_dir, "labels")

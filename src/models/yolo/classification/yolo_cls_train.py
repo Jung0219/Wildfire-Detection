@@ -4,9 +4,9 @@ from ultralytics import YOLO
 # ==== CONFIGURATION ====
 MODEL_PATH = "yolov8s-cls.pt"
 # ======================
-DATA_DIR = "/lab/projects/fire_smoke_awr/data/classification/training/ABCDE_early_fire_removed"    
+DATA_DIR = "/lab/projects/fire_smoke_awr/data/classification/training/AD_phash3_early_smoke"    
 # ^ dataset root containing train/, val/, test/
-PROJECT_DIR = "/lab/projects/fire_smoke_awr/outputs/yolo/classification/ABCDE_early_fire_removed"
+PROJECT_DIR = "/lab/projects/fire_smoke_awr/outputs/yolo/classification/AD_phash3_early_smoke"
 EPOCHS = 100
 IMG_SIZE = 224
 BATCH = 32
@@ -27,23 +27,6 @@ model.train(
     imgsz=IMG_SIZE,
     batch=BATCH,
     resume=False,
-
-    # --- Augmentations (classification-focused) ---
-    #liplr=0.5,        # horizontal flip
-    #degrees=10.0,      # small rotation
-    #scale=0.1,         # mild scaling
-    #translate=0.05,    # light translation
-    #hsv_h=0.0,         # no hue jitter
-    #hsv_s=0.0,         # no saturation jitter
-    #hsv_v=0.2,         # mild brightness jitter
-
-    # --- Disable others ---
-    #mosaic=0.0,
-    #mixup=0.0,
-    #cutmix=0.0,
-    #copy_paste=0.0,
-    #auto_augment=None,
-    #erasing=0.0
 )
 
 

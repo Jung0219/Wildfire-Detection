@@ -1,4 +1,10 @@
-# classifiers.py
+"""
+Classifier wrappers used in two-stage pipelines.
+
+Example:
+    python -m src.pipeline.two_stage.classify_region
+"""
+
 import numpy as np
 
 class BaseClassifier:
@@ -20,8 +26,25 @@ class YOLOClassifier(BaseClassifier):
     def predict(self, crop_image):
         results = self.model.predict(crop_image, verbose=False)[0]
 
-        cls_id = int(results.probs.top1)
-        return results.names[cls_id]
+        if results.probs is not None:
+            cls_id = int(results.probs.top1)
+            return results.names[cls_id]
+
+        boxes = results.boxes
+        if boxes is None or boxes.data.numel() == 0:
+            return "background"
+
+        if boxes.conf is not None:
+            best_idx = int(boxes.conf.argmax())
+        else:
+            best_idx = 0
+        cls_id = int(boxes.cls[best_idx])
+        names = results.names
+        if isinstance(names, dict):
+            return names.get(cls_id, str(cls_id))
+        if isinstance(names, (list, tuple)) and 0 <= cls_id < len(names):
+            return names[cls_id]
+        return str(cls_id)
 
 
 # ===== EVA Wrapper =====
@@ -31,7 +54,7 @@ from src.models.eva02.eva02_model import EVA02Classifier  # adjust path if neede
 
 class EVAClassifier(BaseClassifier):
     def __init__(self, weights_path, device="cuda"):
-        self.model = EVA02Classifier(num_classes=3)  # adapt args to your EVA model
+        self.model = EVA02Classifier(num_classes=2)  # adapt args to your EVA model
         state = torch.load(weights_path, map_location=device)
         self.model.load_state_dict(state)
         self.model.to(device).eval()

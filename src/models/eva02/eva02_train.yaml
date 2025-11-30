@@ -1,13 +1,15 @@
-DATA_DIR: "/lab/projects/fire_smoke_awr/data/classification/training/train_gt+fp"
-PARENT_DIR: "/lab/projects/fire_smoke_awr/outputs/eva02/fp_mined_v2_adamw"
+DATA_DIR: "/lab/projects/fire_smoke_awr/data/classification/training/AD_phash3_early_smoke"
+PARENT_DIR: "/lab/projects/fire_smoke_awr/outputs/eva02/AD_phash3_early_smoke"
 SAVE_SUBDIR: "train"
+   
+# ^ dataset root containing train/, val/, test/
 
 BATCH_SIZE: 32
-EPOCHS: 100
-LR: 1e-5
+EPOCHS: 50
+LR: 2e-5
 OPTIMIZER: "adamw"          # "adamw", "adam", or "sgd"
 MOMENTUM: 0.9               # only used if OPTIMIZER=sgd
-WEIGHT_DECAY: 0.01          # common for all optimizers
+WEIGHT_DECAY: 0.02          # common for all optimizers
 
 SCHEDULER: "cosine"       # "cosine", "step", "none"
 STEP_SIZE: 30             # used if SCHEDULER="step"

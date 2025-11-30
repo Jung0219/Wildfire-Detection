@@ -28,21 +28,20 @@ from torchvision.ops import nms
 from tqdm import tqdm
 
 # ================= CONFIG =================
-GT_DIR      = "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/training/early_smoke/original"
-PARENT_DIR  = "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/outputs/yolo/detection/ABCDE_all"
-YOLO_MODEL  = "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/outputs/yolo/detection/ABCDE_all/train/weights/best.pt"
+GT_DIR      = "/lab/projects/fire_smoke_awr/data/detection/training/AD_phash3_early_smoke/original"
+PARENT_DIR  = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/AdamW/1100_AdamW/test"
+YOLO_MODEL  = os.path.dirname(PARENT_DIR) + "/train/weights/best.pt"
 
-## best values 
-INTERMEDIATE_SIZE = 780
+INTERMEDIATE_SIZE = 1100
 NMS_IOU_THRESH = 0.45
 SAVE_IMG = False
+# Fractional vertical anchor within the top crop window (0–1).
+ANCHOR_Y_FRAC = 0.6
 
 # ==========================================
 IMAGE_DIR = os.path.join(GT_DIR, "images/test")
-OUTPUT_DIR = os.path.join(PARENT_DIR, "composites")
+OUTPUT_DIR = os.path.join(PARENT_DIR, "labels")
 composite_dir = os.path.join(OUTPUT_DIR, "composite_images")
-if SAVE_IMG:
-    os.makedirs(composite_dir, exist_ok=True)
 # ==========================================
 
 
@@ -336,60 +335,71 @@ def pad_or_downscale_to_640(img, target_size=640, color=(114, 114, 114)):
 
 
 if __name__ == "__main__":
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    def main():
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        if SAVE_IMG:
+            os.makedirs(composite_dir, exist_ok=True)
 
-    model = YOLO(YOLO_MODEL)
-    image_files = [f for f in os.listdir(IMAGE_DIR) if f.lower().endswith((".jpg", ".png", ".jpeg"))]
+        model = YOLO(YOLO_MODEL)
+        image_files = [
+            f for f in os.listdir(IMAGE_DIR) if f.lower().endswith((".jpg", ".png", ".jpeg"))
+        ]
 
-    for img_name in tqdm(image_files, desc="Processing images"):
-        img_path = os.path.join(IMAGE_DIR, img_name)
-        base, ext = os.path.splitext(img_name)
+        for img_name in tqdm(image_files, desc="Processing images"):
+            img_path = os.path.join(IMAGE_DIR, img_name)
+            base, ext = os.path.splitext(img_name)
 
-        out_txt = os.path.join(OUTPUT_DIR, base + ".txt")
-        out_composite = os.path.join(composite_dir, base + "_composite.jpg")
+            out_txt = os.path.join(OUTPUT_DIR, base + ".txt")
+            out_composite = os.path.join(composite_dir, base + "_composite.jpg")
 
-        original = cv2.imread(img_path)
-        H, W = original.shape[:2]
+            original = cv2.imread(img_path)
+            H, W = original.shape[:2]
 
-        if H >= W or H < 640 or W < 640:
-            # Tall (or small) image → pad/downscale
-            composite, (x_off, y_off, scale) = pad_or_downscale_to_640(original, 640)
-            meta = {
-                "div_y": 0,   # forces all detections into bottom branch
-                "scale_to_640": scale,
-                "x_off": x_off,
-                "y_off": y_off
-            }
-        else:
-            # Wide image → composite pipeline
-            y_border = detect_skyline_y(original, 120, 255, 0, 130, 5.0)
-            obj_center = (0.5, float(y_border) / H) if y_border >= 0 else (0.5, 0.5)
-            composite, meta = generate_composite_640x640(original, obj_center, INTERMEDIATE_SIZE)
-
-        if SAVE_IMG == True:
-            cv2.imwrite(out_composite, composite)
-
-        results = model.predict(composite, imgsz=640, conf=0.001, verbose=False)[0]
-        dets_top, dets_bottom = [], []
-
-        for box, conf, cls_id in zip(results.boxes.xywhn.cpu().numpy(),
-                                     results.boxes.conf.cpu().numpy(),
-                                     results.boxes.cls.cpu().numpy()):
-            is_bottom = (box[1] * 640 >= meta["div_y"])
-            mapped = yolo_to_original(box, meta, conf, cls_id, W, H, is_bottom)
-            if is_bottom:
-                dets_bottom.append(mapped)
+            if H >= W or H < 640 or W < 640:
+                # Tall (or small) image → pad/downscale
+                composite, (x_off, y_off, scale) = pad_or_downscale_to_640(original, 640)
+                meta = {
+                    "div_y": 0,  # forces all detections into bottom branch
+                    "scale_to_640": scale,
+                    "x_off": x_off,
+                    "y_off": y_off,
+                }
             else:
-                dets_top.append(mapped)
+                # Wide image → composite pipeline
+                y_border = detect_skyline_y(original, 120, 255, 0, 130, 5.0)
+                obj_center = (0.5, float(y_border) / H) if y_border >= 0 else (0.5, 0.5)
+                composite, meta = generate_composite_640x640(
+                    original, obj_center, INTERMEDIATE_SIZE, anchor_y_frac=ANCHOR_Y_FRAC
+                )
 
-        merged = dets_bottom + dets_top
-        if NMS_IOU_THRESH and NMS_IOU_THRESH > 0:
-            final_dets = apply_nms(merged, NMS_IOU_THRESH, W, H)
-        else:
-            final_dets = [[d[0], d[1], d[2], d[3], d[4], d[5]] for d in merged]
+            if SAVE_IMG:
+                cv2.imwrite(out_composite, composite)
 
-        with open(out_txt, "w") as f:
-            for cls_id, xc, yc, w, h, conf in final_dets:
-                f.write(f"{cls_id} {xc:.6f} {yc:.6f} {w:.6f} {h:.6f} {conf:.4f}\n")
+            results = model.predict(composite, imgsz=640, conf=0.001, verbose=False)[0]
+            dets_top, dets_bottom = [], []
 
-    print(f"✅ Finished processing {len(image_files)} images. Results saved to {OUTPUT_DIR}")
+            for box, conf, cls_id in zip(
+                results.boxes.xywhn.cpu().numpy(),
+                results.boxes.conf.cpu().numpy(),
+                results.boxes.cls.cpu().numpy(),
+            ):
+                is_bottom = box[1] * 640 >= meta["div_y"]
+                mapped = yolo_to_original(box, meta, conf, cls_id, W, H, is_bottom)
+                if is_bottom:
+                    dets_bottom.append(mapped)
+                else:
+                    dets_top.append(mapped)
+
+            merged = dets_bottom + dets_top
+            if NMS_IOU_THRESH and NMS_IOU_THRESH > 0:
+                final_dets = apply_nms(merged, NMS_IOU_THRESH, W, H)
+            else:
+                final_dets = [[d[0], d[1], d[2], d[3], d[4], d[5]] for d in merged]
+
+            with open(out_txt, "w") as f:
+                for cls_id, xc, yc, w, h, conf in final_dets:
+                    f.write(f"{cls_id} {xc:.6f} {yc:.6f} {w:.6f} {h:.6f} {conf:.4f}\n")
+
+        print(f"✅ Finished processing {len(image_files)} images. Results saved to {OUTPUT_DIR}")
+
+    main()

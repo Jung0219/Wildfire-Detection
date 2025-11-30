@@ -53,7 +53,7 @@ class EVA02Classifier(nn.Module):
                  model_name="eva02_base_patch16_clip_224", 
                  num_classes=2, 
                  pretrained=True,
-                 transform="letterbox",   # "letterbox" or "centerpad"
+                 transform=None,   # "letterbox", "centerpad", or None
                  img_size=224):
         super().__init__()
         self.backbone = create_model(model_name, pretrained=pretrained, num_classes=num_classes)
@@ -70,8 +70,10 @@ class EVA02Classifier(nn.Module):
                 transforms.ToTensor(),
                 transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5))
             ])
+        elif transform is None:
+            self.transform = None
         else:
-            raise ValueError(f"Unknown transform: {transform}. Use 'letterbox' or 'centerpad'.")
+            raise ValueError(f"Unknown transform: {transform}. Use 'letterbox', 'centerpad', or None.")
 
     def forward(self, x):
         return self.backbone(x)

@@ -1,9 +1,9 @@
 """
-Generate square composite images (plus YOLO labels) for every sample in a folder,
+Generate square composite images (plus YOLO labels) across train/val splits,
 producing multiple horizontal-crop variations per image for augmentation review.
 
 Example:
-    python src/data_manipulation/composite_generation/single_image_composite.py
+    python src/data_manipulation/composite_generation/generate_composite.py
 """
 
 from __future__ import annotations
@@ -20,14 +20,19 @@ from tqdm import tqdm
 # ====================== CONFIG ======================
 CONFIG = {
     # Parent directories with YOLO-style splits (images/ + labels/)
-    "INPUT_PARENT": "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/training/early_smoke/original",
-    "OUTPUT_PARENT": "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/training/early_smoke/composite",
-    "IMAGE_SUBDIR": "images/val",
-    "LABEL_SUBDIR": "labels/val",
+    "INPUT_PARENT": "/lab/projects/fire_smoke_awr/data/detection/training/AD_phash3_early_smoke/original",
+    "OUTPUT_PARENT": "/lab/projects/fire_smoke_awr/data/detection/training/AD_phash3_early_smoke/composite/1100",
+    # When DATASET_SPLITS is populated, IMAGE_ROOT/LABEL_ROOT define the shared directories.
+    "DATASET_SPLITS": ["train", "val"],
+    "IMAGE_ROOT": "images",
+    "LABEL_ROOT": "labels",
+    # Legacy single-dir override (set both to None when using DATASET_SPLITS)
+    "IMAGE_SUBDIR": None,
+    "LABEL_SUBDIR": None,
     "IMAGE_EXTENSIONS": [".jpg", ".jpeg", ".png"],
     # Canvas and intermediate sizing
     "CANVAS_SIZE": 640,
-    "INTERMEDIATE_SIZE": 780,
+    "INTERMEDIATE_SIZE": 1100,
     # Choose which bounding box to influence the crop window (0 = first box)
     "PRIMARY_BOX_INDEX": 0,
     # Where should that box land horizontally within the crop? (0=left edge, 1=right edge)
@@ -142,6 +147,37 @@ def list_image_files(image_dir: Path, extensions: Sequence[str]) -> List[Path]:
         if path.is_file() and path.suffix.lower() in allowed
     ]
     return sorted(files)
+
+
+def resolve_split_configs(config: dict) -> List[dict]:
+    splits = config.get("DATASET_SPLITS")
+    if splits:
+        image_root = Path(config.get("IMAGE_ROOT", "images"))
+        label_root = Path(config.get("LABEL_ROOT", "labels"))
+        resolved = []
+        for split in splits:
+            resolved.append(
+                {
+                    "name": str(split),
+                    "image_subdir": image_root / split,
+                    "label_subdir": label_root / split,
+                }
+            )
+        return resolved
+
+    image_subdir = config.get("IMAGE_SUBDIR")
+    label_subdir = config.get("LABEL_SUBDIR")
+    if not image_subdir or not label_subdir:
+        raise ValueError(
+            "Either provide DATASET_SPLITS with IMAGE_ROOT/LABEL_ROOT or set IMAGE_SUBDIR/LABEL_SUBDIR."
+        )
+    return [
+        {
+            "name": config.get("SPLIT_NAME", Path(image_subdir).name),
+            "image_subdir": Path(image_subdir),
+            "label_subdir": Path(label_subdir),
+        }
+    ]
 
 
 def build_bottom_band(
@@ -320,54 +356,90 @@ def process_sample(
     return results
 
 
+def process_split(
+    input_parent: Path,
+    output_parent: Path,
+    split_config: dict,
+    config: dict,
+) -> dict:
+    split_name = split_config.get("name", "split")
+    image_dir = input_parent / split_config["image_subdir"]
+    label_dir = input_parent / split_config["label_subdir"]
+    out_image_dir = output_parent / split_config["image_subdir"]
+    out_label_dir = output_parent / split_config["label_subdir"]
+
+    if not image_dir.exists():
+        raise FileNotFoundError(f"[{split_name}] Image directory not found: {image_dir}")
+    if not label_dir.exists():
+        raise FileNotFoundError(f"[{split_name}] Label directory not found: {label_dir}")
+
+    out_image_dir.mkdir(parents=True, exist_ok=True)
+    out_label_dir.mkdir(parents=True, exist_ok=True)
+
+    image_files = list_image_files(image_dir, config["IMAGE_EXTENSIONS"])
+    if not image_files:
+        print(f"[{split_name}] No images found matching extensions; skipping.")
+        return {
+            "split": split_name,
+            "processed_images": 0,
+            "missing_labels": 0,
+            "composites": 0,
+        }
+
+    max_samples = config.get("MAX_SAMPLES")
+    if max_samples is not None:
+        image_files = image_files[: int(max_samples)]
+
+    total_composites = 0
+    missing_labels = 0
+    desc = f"Processing {split_name} images"
+
+    for img_path in tqdm(image_files, desc=desc):
+        label_path = label_dir / f"{img_path.stem}.txt"
+        if not label_path.exists():
+            print(f"[{split_name}] Warning: missing label for {img_path.name}, skipping.")
+            missing_labels += 1
+            continue
+
+        results = process_sample(img_path, label_path, out_image_dir, out_label_dir, config)
+        total_composites += len(results)
+
+    processed_images = len(image_files) - missing_labels
+    print(f"\n[{split_name}] Summary")
+    print(f"Images processed: {processed_images}")
+    print(f"Images skipped (missing label): {missing_labels}")
+    print(f"Composites generated: {total_composites}")
+    print(f"Output images dir: {out_image_dir}")
+    print(f"Output labels dir: {out_label_dir}")
+    return {
+        "split": split_name,
+        "processed_images": processed_images,
+        "missing_labels": missing_labels,
+        "composites": total_composites,
+    }
+
+
 def main() -> None:
     print("Running composite generation with CONFIG:")
     print(json.dumps(CONFIG, indent=2))
 
     input_parent = Path(CONFIG["INPUT_PARENT"]).expanduser()
     output_parent = Path(CONFIG["OUTPUT_PARENT"]).expanduser()
-    image_dir = input_parent / CONFIG["IMAGE_SUBDIR"]
-    label_dir = input_parent / CONFIG["LABEL_SUBDIR"]
-    out_image_dir = output_parent / CONFIG["IMAGE_SUBDIR"]
-    out_label_dir = output_parent / CONFIG["LABEL_SUBDIR"]
+    split_configs = resolve_split_configs(CONFIG)
 
-    if not image_dir.exists():
-        raise FileNotFoundError(f"Image directory not found: {image_dir}")
-    if not label_dir.exists():
-        raise FileNotFoundError(f"Label directory not found: {label_dir}")
+    summaries = []
+    for split_cfg in split_configs:
+        summaries.append(process_split(input_parent, output_parent, split_cfg, CONFIG))
 
-    out_image_dir.mkdir(parents=True, exist_ok=True)
-    out_label_dir.mkdir(parents=True, exist_ok=True)
-
-    image_files = list_image_files(image_dir, CONFIG["IMAGE_EXTENSIONS"])
-    if not image_files:
-        print("No images found matching extensions; exiting.")
-        return
-
-    max_samples = CONFIG.get("MAX_SAMPLES")
-    if max_samples is not None:
-        image_files = image_files[: int(max_samples)]
-
-    total_composites = 0
-    missing_labels = 0
-
-    for img_path in tqdm(image_files, desc="Processing images"):
-        label_path = label_dir / f"{img_path.stem}.txt"
-        if not label_path.exists():
-            print(f"Warning: missing label for {img_path.name}, skipping.")
-            missing_labels += 1
-            continue
-
-        results = process_sample(img_path, label_path, out_image_dir, out_label_dir, CONFIG)
-        total_composites += len(results)
-        # Optional hook: inspect `results` here if you want per-image logging.
-
-    processed_images = len(image_files) - missing_labels
-    print("\n=== Summary ===")
-    print(f"Images processed: {processed_images}")
-    print(f"Images skipped (missing label): {missing_labels}")
-    print(f"Composites generated: {total_composites}")
-    print(f"Outputs stored under: {output_parent}")
+    if len(summaries) > 1:
+        total_processed = sum(s["processed_images"] for s in summaries)
+        total_missing = sum(s["missing_labels"] for s in summaries)
+        total_composites = sum(s["composites"] for s in summaries)
+        print("\n=== Aggregate Summary ===")
+        print(f"Images processed: {total_processed}")
+        print(f"Images skipped (missing label): {total_missing}")
+        print(f"Composites generated: {total_composites}")
+        print(f"Outputs stored under: {output_parent}")
 
 
 if __name__ == "__main__":

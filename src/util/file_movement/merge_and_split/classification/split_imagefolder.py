@@ -3,12 +3,12 @@ import random
 from pathlib import Path
 
 # ==== CONFIGURATION ====
-INPUT_DIR = "/lab/projects/fire_smoke_awr/data/classification/datasets/train_gt+fp/augmented"         # dataset root with class subfolders
-OUTPUT_DIR = "/lab/projects/fire_smoke_awr/data/classification/training/train_gt+fp"   # where train/ val/ test/ will be created
+INPUT_DIR = "/lab/projects/fire_smoke_awr/data/classification/datasets/AD_phash3_early_smoke"         # dataset root with class subfolders
+OUTPUT_DIR = "/lab/projects/fire_smoke_awr/data/classification/training/AD_phash3_early_smoke"   # where train/ val/ test/ will be created
 SPLIT_RATIOS = {                       # specify your ratios here
-    "train": 0.8,
-    "val": 0.2,
-    "test": 0.0
+    "train": 0.7,
+    "val": 0.1,
+    "test": 0.2
 }
 SEED = 42                              # reproducibility
 # ========================

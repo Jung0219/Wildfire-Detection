@@ -17,8 +17,8 @@ from glob import glob
 from tqdm import tqdm
 
 # === CONFIGURATION ===
-pred_dir = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/baseline/A_original_single_objects/composites/tp_below_0.163"   # YOLO txt files
-img_dir  = "/lab/projects/fire_smoke_awr/data/detection/test_sets/A/original/single_objects/images/test"  # original images
+pred_dir = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/900_AdamW/es_train/labels/tp_05"   # YOLO txt files
+img_dir  = "/lab/projects/fire_smoke_awr/data/detection/training/AD_phash3_early_smoke/original/images/train"  # original images
 imgsz = 640
 save_plot = pred_dir + "/plot/object_size_distribution.png"
 os.makedirs(os.path.dirname(save_plot), exist_ok=True)

@@ -27,14 +27,14 @@ except ImportError as exc:  # pragma: no cover - dependency guard
 
 CONFIG = {
     # Source dataset (expects `images/` and `labels/` inside this folder).
-    "source_root": "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/processed/early_smoke_phash3_2%",
+    "source_root": "/lab/projects/fire_smoke_awr/data/detection/processed/AD_phash3",
     # Destination dataset root to receive filtered samples.
-    "output_root": "/lab/biohpc/ComputerVisionAI/fire_smoke_awr/data/detection/processed/early_smoke_phash3_0.5%",
+    "output_root": "/lab/projects/fire_smoke_awr/data/detection/processed/AD_phash3_early_smoke",
     "image_dirname": "images",
     "label_dirname": "labels",
     "image_extensions": [".jpg", ".jpeg", ".png", ".bmp"],
     "target_class": 1,
-    "max_area_percent": 0.5,  # percentage
+    "max_area_percent": 2,  # percentage
     "min_resolution": (1080, 1080),  # width, height
 }
 

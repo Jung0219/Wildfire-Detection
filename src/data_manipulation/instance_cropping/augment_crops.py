@@ -17,24 +17,17 @@ import albumentations as A
 # ========= CONFIGURATION =========
 CONFIG = {
     # Paths
-    "INPUT_DIR": "/lab/projects/fire_smoke_awr/data/classification/training/train_gt+fp/augmented/smoke",   # change this
-    "OUTPUT_DIR": "/lab/projects/fire_smoke_awr/data/classification/training/train_gt+fp/augmented/smoke", # change this
+    "INPUT_DIR": "/lab/projects/fire_smoke_awr/data/classification/datasets/AD_phash3_early_smoke/foreground",   # change this
+    "OUTPUT_DIR": "/lab/projects/fire_smoke_awr/data/classification/datasets/AD_phash3_early_smoke/foreground", # change this
 
     # Augmentation settings
-    "NUM_AUGMENTS": 1,   # number of augmented images per original
+    "NUM_AUGMENTS": 4,   # number of augmented images per original
     "INPUT_EXTS": (".jpg", ".jpeg", ".png"),  # allowed image extensions
 
     # Augmentation pipeline
     "AUGMENT_PIPELINE": A.Compose([
         A.HorizontalFlip(p=0.5),
-        A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=15, p=0.7),
-        A.RandomBrightnessContrast(p=0.6),
-        A.HueSaturationValue(hue_shift_limit=0, sat_shift_limit=20, val_shift_limit=20, p=0.4),
-        A.RandomFog(fog_coef_lower=0.05, fog_coef_upper=0.2, alpha_coef=0.08, p=0.4),
-        A.GaussNoise(p=0.4),
-        A.MotionBlur(blur_limit=5, p=0.3),
-        A.CoarseDropout(max_holes=3, max_height=32, max_width=32, p=0.3)
-        # No resize → keeps original resolution
+        A.Affine(translate_percent=0.05, scale=(0.9, 1.1), rotate=(-15, 15), p=0.7),
     ])
 }   
 # =================================

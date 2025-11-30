@@ -35,3 +35,13 @@ src/models/yolo/detection/train.py
 node_modules/
 package-lock.json
 package.json
+# Ignore classifier accuracy verification snapshots
+src/pipeline/two_stage/classifier_accuracy_verification/
+
+# Ignore sky logic sample outputs
+src/pipeline/sky_logic/sky/samples/graphs/
+src/pipeline/sky_logic/sky/samples/preview/
+
+# Local debug artifacts
+src/data_manipulation/instance_cropping/crops_224_debug/
+src/pipeline/MR+classifier/debug_vis/

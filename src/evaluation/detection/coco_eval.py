@@ -1,13 +1,15 @@
 import os
 import json
+import sys
+from io import StringIO
 from PIL import Image
 from tqdm import tqdm
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 # ================= CONFIG =================
-GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire_test_clean"     # contains images/test and labels/test
-PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/early_fire_pad_aug/test_set_clean/manual_resize_crop_inference/labels" 
+GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/training/pyro-sdis/phash10/original"         # contains images/test and labels/test
+PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/ablation/pyro-sdis/yolov5su/test/labels" # full_pipeline/yolo_0.3_0.3" 
 CONF_THRESH = 0.0  # <--- configurable threshold; None for no filtering
 # ==========================================
 
@@ -137,5 +139,26 @@ if __name__ == "__main__":
     coco_eval = COCOeval(coco_gt, coco_dt, iouType='bbox')
     coco_eval.evaluate()
     coco_eval.accumulate()
+    
+    # Capture summarize() output
+    old_stdout = sys.stdout
+    sys.stdout = captured_output = StringIO()
     coco_eval.summarize()
+    sys.stdout = old_stdout
+    
+    summary_text = captured_output.getvalue()
+    print(summary_text)
     print(PRED_DIR)
+    
+    # Save results to file
+    results_file = os.path.join(os.path.dirname(PRED_DIR), "coco_eval_results.txt")
+    with open(results_file, "w") as f:
+        f.write(f"COCO Evaluation Results\n")
+        f.write(f"{'='*60}\n")
+        f.write(f"GT_DIR: {GT_DIR}\n")
+        f.write(f"PRED_DIR: {PRED_DIR}\n")
+        f.write(f"CONF_THRESH: {CONF_THRESH}\n")
+        f.write(f"{'='*60}\n\n")
+        f.write(summary_text)
+    
+    print(f"\nResults saved to: {results_file}")
