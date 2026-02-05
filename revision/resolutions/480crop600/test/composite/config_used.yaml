@@ -1,0 +1,14 @@
+ClassifierType: eva
+ClassifierWeights: /lab/projects/fire_smoke_awr/outputs/eva02/AD_phash3_early_smoke/train/weights/best_loss.pt
+DetectorWeights: /lab/projects/fire_smoke_awr/revision/resolutions/480crop600/train/weights/best.pt
+anchor_y_frac: 0.6
+classifier_crop_size: 224
+conf_high: 0.4
+conf_low: 0.1
+image_dir: /lab/projects/fire_smoke_awr/data/detection/training/early_smoke/original/images/test
+image_size: 480
+intermediate_size: 600
+nms_iou_thresh: 0.45
+output_dir: /lab/projects/fire_smoke_awr/revision/resolutions/480crop600/test/composite
+save_composites: false
+save_debug: false

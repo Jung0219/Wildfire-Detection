@@ -24,7 +24,7 @@ from src.full_pipeline.postprocess.nms import apply_nms
 from src.full_pipeline.preprocess.composite import prepare_image_for_detection
 
 # ================= CONFIG =================
-CONFIG = Path(__file__).resolve().parents[2] / "batch_run.yaml"
+CONFIG = Path(__file__).resolve().parents[0] / "single_run.yaml"
 # ==========================================
 
 

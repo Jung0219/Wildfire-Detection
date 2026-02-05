@@ -25,7 +25,7 @@ from src.full_pipeline.postprocess.nms import apply_nms
 from src.full_pipeline.preprocess.composite import prepare_image_for_detection
 
 # ================= CONFIG =================
-CONFIG = Path(__file__).resolve().parents[2] / "batch_run.yaml"
+CONFIG = "/lab/projects/fire_smoke_awr/src/full_pipeline/run/batch/batch_run.yaml"
 # ==========================================
 
 
@@ -79,15 +79,26 @@ def main() -> None:
         yaml.safe_dump(cfg_dict, f)
 
     detector = load_detector(cfg.detector_weights, device=cfg.device)
+    image_size = cfg_dict.get("image_size", 640)
 
     for img_path in tqdm(image_paths, desc="Running composite YOLO"):
         if not img_path.exists():
             raise FileNotFoundError(f"Image not found: {img_path}")
 
         image = load_image(img_path)
-        composite, meta = prepare_image_for_detection(image, cfg.intermediate_size, cfg.anchor_y_frac)
+        composite, meta = prepare_image_for_detection(
+            image,
+            cfg.intermediate_size,
+            cfg.anchor_y_frac,
+            target_size=image_size,
+        )
 
-        yolo_res = detector.predict(composite, imgsz=640, conf=cfg_dict.get("detector_conf", 0.001), verbose=False)[0]
+        yolo_res = detector.predict(
+            composite,
+            imgsz=image_size,
+            conf=cfg_dict.get("detector_conf", 0.001),
+            verbose=False,
+        )[0]
         mapped = map_detections(yolo_res, meta, image.shape)
 
         if cfg.nms_iou_thresh and cfg.nms_iou_thresh > 0:

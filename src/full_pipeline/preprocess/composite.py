@@ -16,7 +16,11 @@ def detect_skyline_y(img_bgr, cb_min=120, cb_max=255, cr_min=0, cr_max=130, sky_
     """Detect a skyline row; returns -1 if not found."""
 
     H, W = img_bgr.shape[:2]
-    ycrcb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2YCrCb)
+    scale = 0.25
+    resized_w = max(1, int(round(W * scale)))
+    resized_h = max(1, int(round(H * scale)))
+    resized_bgr = cv2.resize(img_bgr, (resized_w, resized_h))
+    ycrcb = cv2.cvtColor(resized_bgr, cv2.COLOR_BGR2YCrCb)
     Y, Cr, Cb = cv2.split(ycrcb)
     y_thresh = float(Y.astype(np.float32).mean())
 
@@ -25,29 +29,40 @@ def detect_skyline_y(img_bgr, cb_min=120, cb_max=255, cr_min=0, cr_max=130, sky_
         Y_, Cr_, Cb_ = cv2.split(ycrcb_)
         return ((Y_ >= y_thresh) & (Cb_ >= cb_min) & (Cb_ <= cb_max) & (Cr_ >= cr_min) & (Cr_ <= cr_max)).astype(np.uint8)
 
-    m_full = sky_mask(img_bgr)
-    counts = m_full.sum(axis=1) / float(W)
+    m_full = sky_mask(resized_bgr)
+    counts = m_full.sum(axis=1) / float(resized_w)
     d = np.diff(counts)
     idx = int(np.argmin(d))
-    y_candidate = int(np.clip(idx + 1, 0, H - 1))
+    y_candidate = int(np.clip(idx + 1, 0, resized_h - 1))
     above = int(m_full[:y_candidate, :].sum())
     below = int(m_full[y_candidate:, :].sum())
     ratio = (above + 1e-9) / (below + 1e-9)
-    return y_candidate if ratio >= sky_ratio_thresh else -1
+    if ratio < sky_ratio_thresh:
+        return -1
+    scale_y = resized_h / float(H)
+    y_scaled = int(round(y_candidate / scale_y))
+    return int(np.clip(y_scaled, 0, H - 1))
 
 
-def generate_composite_640x640(original_image, object_center_norm, intermediate_size, anchor_x_frac=0.5, anchor_y_frac=0.25):
-    """Create a 640x640 composite for wide images; returns (composite, meta)."""
+def generate_composite_640x640(
+    original_image,
+    object_center_norm,
+    intermediate_size,
+    anchor_x_frac=0.5,
+    anchor_y_frac=0.25,
+    target_size: int = 640,
+):
+    """Create a square composite for wide images; returns (composite, meta)."""
 
-    TARGET_SIZE = 640
+    TARGET_SIZE = target_size
     orig_h, orig_w = original_image.shape[:2]
 
     scale_inter = intermediate_size / (orig_w if orig_w >= orig_h else orig_h)
     res_inter_w, res_inter_h = int(orig_w * scale_inter), int(orig_h * scale_inter)
     image_inter = cv2.resize(original_image, (res_inter_w, res_inter_h))
 
-    scale_to_640 = min(TARGET_SIZE / orig_w, TARGET_SIZE / orig_h)
-    resized_w, resized_h = int(orig_w * scale_to_640), int(orig_h * scale_to_640)
+    scale_to_target = min(TARGET_SIZE / orig_w, TARGET_SIZE / orig_h)
+    resized_w, resized_h = int(orig_w * scale_to_target), int(orig_h * scale_to_target)
     resized_bottom = cv2.resize(original_image, (resized_w, resized_h))
 
     if resized_h == TARGET_SIZE and resized_w == TARGET_SIZE:
@@ -56,11 +71,13 @@ def generate_composite_640x640(original_image, object_center_norm, intermediate_
             "crop_x1": 0,
             "crop_y1": 0,
             "scale_inter": scale_inter,
-            "scale_to_640": scale_to_640,
+            "scale_to_640": scale_to_target,
+            "scale_to_target": scale_to_target,
             "resized_w": resized_w,
             "resized_h": resized_h,
             "pad_top_left": 0,
             "pad_bottom_left": 0,
+            "target_size": TARGET_SIZE,
         }
 
     crop_h = TARGET_SIZE - resized_h
@@ -111,11 +128,13 @@ def generate_composite_640x640(original_image, object_center_norm, intermediate_
         "crop_x1": crop_x1,
         "crop_y1": crop_y1,
         "scale_inter": scale_inter,
-        "scale_to_640": scale_to_640,
+        "scale_to_640": scale_to_target,
+        "scale_to_target": scale_to_target,
         "resized_w": resized_w,
         "resized_h": resized_h,
         "pad_top_left": pad_left_top,
         "pad_bottom_left": pad_left_bottom,
+        "target_size": TARGET_SIZE,
     }
     return composite, meta
 
@@ -141,18 +160,33 @@ def pad_or_downscale_to_640(img, target_size=640, color=(114, 114, 114)):
     return canvas, (x_off, y_off, scale)
 
 
-def prepare_image_for_detection(image, intermediate_size: int, anchor_y_frac: float):
+def prepare_image_for_detection(
+    image,
+    intermediate_size: int,
+    anchor_y_frac: float,
+    target_size: int = 640,
+):
     """Select padding vs composite strategy and return (composite, meta)."""
 
     img_h, img_w = image.shape[:2]
-    if img_h >= img_w or img_h < 640 or img_w < 640:
-        composite, (x_off, y_off, scale) = pad_or_downscale_to_640(image, 640)
-        meta = {"div_y": 0, "scale_to_640": scale, "x_off": x_off, "y_off": y_off}
+    if img_h >= img_w or img_h < target_size or img_w < target_size:
+        composite, (x_off, y_off, scale) = pad_or_downscale_to_640(image, target_size)
+        meta = {
+            "div_y": 0,
+            "scale_to_640": scale,
+            "scale_to_target": scale,
+            "x_off": x_off,
+            "y_off": y_off,
+            "target_size": target_size,
+        }
     else:
         y_border = detect_skyline_y(image, 120, 255, 0, 130, 5.0)
         obj_center = (0.5, float(y_border) / img_h) if y_border >= 0 else (0.5, 0.5)
         composite, meta = generate_composite_640x640(
-            image, obj_center, intermediate_size, anchor_y_frac=anchor_y_frac
+            image,
+            obj_center,
+            intermediate_size,
+            anchor_y_frac=anchor_y_frac,
+            target_size=target_size,
         )
     return composite, meta
-

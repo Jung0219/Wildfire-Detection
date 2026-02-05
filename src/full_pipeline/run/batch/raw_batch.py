@@ -20,7 +20,6 @@ from src.full_pipeline.config.config import ensure_dir
 from src.full_pipeline.data.loader import base_name, load_image
 from src.full_pipeline.io.save import write_labels
 from src.full_pipeline.models.detector import load_detector
-from src.full_pipeline.postprocess.nms import apply_nms
 
 # ================= CONFIG =================
 CONFIG = "/lab/projects/fire_smoke_awr/src/full_pipeline/run/batch/batch_run.yaml"
@@ -101,13 +100,14 @@ def main() -> None:
 
     nms_thresh = cfg_dict.get("nms_iou_thresh")
     det_conf = cfg_dict.get("detector_conf", 0.001)
+    image_size = cfg_dict.get("image_size", 640)
 
     for img_path in tqdm(image_paths, desc="Running raw YOLO"):
         if not img_path.exists():
             raise FileNotFoundError(f"Image not found: {img_path}")
 
         image = load_image(img_path)
-        yolo_res = detector.predict(image, imgsz=640, conf=det_conf, verbose=False)[0]
+        yolo_res = detector.predict(image, imgsz=image_size, conf=det_conf, verbose=False)[0]
 
         dets = detections_from_result(yolo_res)
         final_dets = [d[:6] for d in dets]

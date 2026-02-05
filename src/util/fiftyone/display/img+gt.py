@@ -12,9 +12,9 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[4]
 DATASET_NAME = "check"
 
-PARENT_DIR = Path("/lab/projects/fire_smoke_awr/data/detection/processed/secondary_detector/crops_224")
-IMAGES_DIR = PARENT_DIR / "images"
-LABELS_DIR = PARENT_DIR / "labels"
+PARENT_DIR = Path("/lab/projects/fire_smoke_awr/data/detection/training/early_smoke/original")
+IMAGES_DIR = PARENT_DIR / "images/train"
+LABELS_DIR = PARENT_DIR / "labels/train"
 CLASS_LIST = ["fire", "smoke"]
 
 # FiftyOne database location (keep writable but inside the repo tree)

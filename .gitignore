@@ -45,3 +45,7 @@ src/pipeline/sky_logic/sky/samples/preview/
 # Local debug artifacts
 src/data_manipulation/instance_cropping/crops_224_debug/
 src/pipeline/MR+classifier/debug_vis/
+src/.pipeline_old/prototype/debug_vis/
+src/.pipeline_old/two_stage/classifier_accuracy_verification/
+src/.pipeline_old/sky_logic/sky/samples/graphs/
+src/.pipeline_old/sky_logic/sky/samples/preview/

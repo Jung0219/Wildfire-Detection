@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 # ================= CONFIG =================
 # Set your folders and options here. 
-GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/training/AD_phash3_early_smoke/original"     # contains images/test and labels/test
-PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/AdamW/800_AdamW/test/labels" 
+GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/training/early_smoke/original/labels/test"     # contains images/test and labels/test
+PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/ablation/early_smoke/yolov5su/test/labels" # full_pipeline/yolo_0.3_0.3"
 IOU_THRESH: float = 0.5
 MAX_DETS: Optional[int] = 100  # e.g., 100 to cap per-image detections
 SAVE_JSON: Optional[str] = None # e.g., "/path/to/results.json"
@@ -20,7 +20,6 @@ PLOTS_DIR: Optional[str] = os.path.join(PRED_DIR, "plots")  # e.g., "/path/to/pr
 # YOLO box types
 # GT box:    (cls, cx, cy, w, h)
 # Pred box:  (cls, cx, cy, w, h, conf)
-GT_DIR = GT_DIR + "/labels/test"
 
 # Helpers
 def load_yolo_labels(path: str, is_pred: bool = False) -> List[Tuple]:
@@ -277,6 +276,19 @@ def evaluate_directories( # change it so it takes in objects instead of paths.
         o_rec = np.array([], dtype=float)
         o_f1 = np.array([], dtype=float)
 
+    if o_f1.size > 0:
+        best_idx = int(np.argmax(o_f1))
+        overall_best = {
+            "precision": float(o_prec[best_idx]),
+            "recall": float(o_rec[best_idx]),
+            "f1": float(o_f1[best_idx]),
+            "score_threshold": float(o_scores_sorted[best_idx]),
+        }
+    else:
+        overall_best = {"precision": 0.0, "recall": 0.0, "f1": 0.0, "score_threshold": 0.0}
+
+    summary["overall_best_f1"] = overall_best
+
     return {
         "iou_thresh": iou_thresh,
         "classes": classes,
@@ -288,6 +300,7 @@ def evaluate_directories( # change it so it takes in objects instead of paths.
             "recall": o_rec.tolist(),
             "f1": o_f1.tolist(),
             "ap": float(mAP),
+            "best_f1": overall_best,
             "pr_interp": {
                 "recall": rgrid.tolist(),
                 "precision": macro_prec.tolist(),
@@ -310,7 +323,14 @@ def main():
     # Print concise summary
     print("Evaluation Summary:")
     for k, v in res["summary"].items():
-        print(f"- {k}: {v}")
+        if k == "overall_best_f1":
+            b = v
+            print(
+                f"- overall_best_f1: F1={b['f1']:.4f} @ thr={b['score_threshold']:.3f} "
+                f"(P={b['precision']:.3f}, R={b['recall']:.3f})"
+            )
+        else:
+            print(f"- {k}: {v}")
 
     print("\nPer-class metrics:")
     for cls in res["classes"]:
@@ -320,6 +340,30 @@ def main():
             f"class {cls}: AP={m['ap']:.4f} TP={m['tp']} FP={m['fp']} FN={m['fn']} "
             f"| bestF1={best['f1']:.4f} @ thr={best['score_threshold']:.3f} (P={best['precision']:.3f}, R={best['recall']:.3f})"
         )
+
+    # Save summary to txt in parent directory of PRED_DIR
+    parent_dir = os.path.dirname(os.path.abspath(PRED_DIR))
+    txt_path = os.path.join(parent_dir, "eval_metrics.txt")
+    with open(txt_path, "w") as f:
+        f.write("Evaluation Summary:\n")
+        for k, v in res["summary"].items():
+            if k == "overall_best_f1":
+                b = v
+                f.write(
+                    f"- overall_best_f1: F1={b['f1']:.4f} @ thr={b['score_threshold']:.3f} "
+                    f"(P={b['precision']:.3f}, R={b['recall']:.3f})\n"
+                )
+            else:
+                f.write(f"- {k}: {v}\n")
+        f.write("\nPer-class metrics:\n")
+        for cls in res["classes"]:
+            m = res["per_class"][cls]
+            b = m["best_f1"]
+            f.write(
+                f"class {cls}: AP={m['ap']:.4f} TP={m['tp']} FP={m['fp']} FN={m['fn']} "
+                f"| bestF1={b['f1']:.4f} @ thr={b['score_threshold']:.3f} (P={b['precision']:.3f}, R={b['recall']:.3f})\n"
+            )
+    print(f"Saved TXT: {txt_path}")
 
     # Optional saves
     if SAVE_JSON:

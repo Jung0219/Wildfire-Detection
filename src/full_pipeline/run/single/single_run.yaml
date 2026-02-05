@@ -2,13 +2,12 @@
 # Paths
 # For single_run.py, set image_path; batch runners may still use image_dir.
 image_path: /lab/projects/fire_smoke_awr/data/detection/training/AD_phash3_early_smoke/original/images/test/AoF03567.jpg
-image_dir:  /lab/projects/fire_smoke_awr/data/detection/training/AD_phash3_early_smoke/original/images/test
-output_dir: /lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/AdamW/800_AdamW/full_pipeline/eva0607
+output_dir: /lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/single_run
 # Models
 DetectorWeights: /lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/AdamW/800_AdamW/train/weights/best.pt
-# ClassifierWeights: /lab/projects/fire_smoke_awr/outputs/yolo/classification/AD_phash3_early_smoke/train/weights/best.pt
-ClassifierWeights: /lab/projects/fire_smoke_awr/outputs/eva02/AD_phash3_early_smoke/train/weights/best_loss.pt
-ClassifierType: eva  # yolo or eva
+ClassifierWeights: /lab/projects/fire_smoke_awr/outputs/yolo/classification/AD_phash3_early_smoke/train/weights/best.pt
+# ClassifierWeights: /lab/projects/fire_smoke_awr/outputs/eva02/AD_phash3_early_smoke/train/weights/best_loss.pt
+ClassifierType: yolo  # yolo or eva
 # Thresholds
 conf_low: 0.6
 conf_high: 0.7

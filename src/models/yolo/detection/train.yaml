@@ -1,6 +1,6 @@
-path: /lab/projects/fire_smoke_awr/data/detection/training/AD_phash3_early_smoke/original
+path: /lab/projects/fire_smoke_awr/data/detection/training/early_smoke/composite_gt_guided/720crop900
 train: images/train
-val: images/val
+val: images/val 
 
 nc: 2
-names: ["fire", "smoke"]  
+names: ["fire", "smoke"]

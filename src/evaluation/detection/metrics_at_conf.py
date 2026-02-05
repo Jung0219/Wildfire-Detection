@@ -3,9 +3,9 @@ import glob
 from collections import defaultdict
 
 # ========== CONFIG ==========
-GT_DIR     = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/dev/labels/test"
-PRED_DIR   = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_dev/composites/two_stage/yolo_0.3_0.525"
-CONF_THRESH = 0.3
+GT_DIR     = "/lab/projects/fire_smoke_awr/data/detection/training/AD_phash3_early_smoke/original/labels/test"
+PRED_DIR   = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/AdamW/final(800)/test/labels"
+CONF_THRESH = 0.674
 # ============================
 
 def yolo_to_xywhn(line):

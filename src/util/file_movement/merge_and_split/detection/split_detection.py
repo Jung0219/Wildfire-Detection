@@ -4,8 +4,8 @@ import random
 from tqdm import tqdm
 
 # ==== EDIT THESE VARIABLES ====
-input_dir = '/lab/projects/fire_smoke_awr/data/detection/processed/pyro-sdis/cleaned'
-output_dir = '/lab/projects/fire_smoke_awr/data/detection/training/pyro-sdis_clean/original'
+input_dir = '/lab/projects/fire_smoke_awr/data/detection/datasets/pyro-sdis/deduplicated/phash10'
+output_dir = '/lab/projects/fire_smoke_awr/data/detection/training/pyro-sdis'
 train_ratio = 0.7
 val_ratio = 0.1
 test_ratio = 0.2

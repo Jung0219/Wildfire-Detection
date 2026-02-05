@@ -21,7 +21,7 @@ from src.full_pipeline.io.save import write_labels
 from src.full_pipeline.models.detector import load_detector
 
 # ================= CONFIG =================
-CONFIG = "/lab/projects/fire_smoke_awr/src/full_pipeline/run/single/single_run.yaml"
+CONFIG = Path(__file__).resolve().parents[0] / "single_run.yaml"
 # ==========================================
 
 

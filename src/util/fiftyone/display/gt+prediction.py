@@ -14,19 +14,22 @@ ROOT_DIR = Path(__file__).resolve().parents[4]
 DATASET_NAME = "check"
 
 # Base dataset folder (expects images/ and labels/ inside)
-PARENT_DIR = Path("/lab/projects/fire_smoke_awr/data/detection/training/pyro-sdis/phash10/original")
+PARENT_DIR = Path("/lab/projects/fire_smoke_awr/data/detection/training/AD_phash3_early_smoke/original")
 IMAGES_SUBDIR = "images/test"  # e.g., "images" or "images/test"
 LABELS_SUBDIR = "labels/test"  # e.g., "labels" or "labels/test"
 SPLIT = ""  # optional split like "test" or "val"; leave empty to use subdirs above
 
 # Add as many prediction runs as needed; keys become field names in FiftyOne.
 PREDICTIONS = {
-    "mr_only": Path(
-        "/lab/projects/fire_smoke_awr/outputs/yolo/detection/pyro-sdis/phash10/900/es_test/composites"
+    "baseline": Path(
+        "/lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/AdamW/baseline_AdamW/test/labels"
     ),
     "full_pipeline": Path(
-        "/lab/projects/fire_smoke_awr/outputs/yolo/detection/pyro-sdis/phash10/900/es_test/full_pipeline/yolo_0.1_0.3"
+        "/lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/AdamW/800_AdamW/full_pipeline/yolo/0103"
     ),
+    "multiresolution": Path(
+    "/lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/AdamW/800_AdamW/test/labels"
+    )
 }
 
 # FiftyOne database location (keep writable but inside the repo tree)

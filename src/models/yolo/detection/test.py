@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 # Define paths
-parent_dir = '/lab/projects/fire_smoke_awr/outputs/ablation/pyro-sdis/yolov5su'
+parent_dir = '/lab/projects/fire_smoke_awr/revision/yolov8_skyline_trained/early_smoke'
 run_name = 'test'
 
 # Load the trained model

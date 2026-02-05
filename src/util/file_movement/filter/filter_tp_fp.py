@@ -1,127 +1,256 @@
-import os
-import glob
+"""
+Split YOLO predictions into true positives and false positives based on IoU.
+
+Example:
+    python -m src.filter.filter_tp_fp
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional
+
+from collections import defaultdict
+
 from tqdm import tqdm
 
-# =========================
-# CONFIGURATION
-# =========================
-GT_DIR = "/lab/projects/fire_smoke_awr/data/detection/test_sets/early_fire/dev/labels/test"         # ground truth labels (.txt)
-PRED_DIR = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/ABCDE_noEF/EF_dev/composites/conf_lt_0.3"     # predicted labels (.txt)
-TP_OUT_DIR = os.path.join(PRED_DIR, "tp")
-FP_OUT_DIR = os.path.join(PRED_DIR, "fp")
-TP_IOU_THRESHOLD = 0.5                # IoU cutoff for TP
-FP_IOU_THRESHOLD = 0.5                # IoU cutoff for FP
-CLASS_AWARE = False                   # True = class-aware, False = class-agnostic
-# =========================
-
-os.makedirs(TP_OUT_DIR, exist_ok=True)
-os.makedirs(FP_OUT_DIR, exist_ok=True)
+CONFIG = {
+    "GT_DIR": "/lab/projects/fire_smoke_awr/data/detection/training/pyro-sdis/phash10/original/labels/test", # the labels folder
+    "PRED_DIR": "/lab/projects/fire_smoke_awr/outputs/yolo/detection/pyro-sdis/phash10/900/test/labels",
+    "TP_OUT_DIR_NAME": "tp",
+    "FP_OUT_DIR_NAME": "fp",
+    "TP_IOU_THRESH": 0.5,
+    "FP_IOU_THRESH": 0.5-1e-6,
+    "CONF_MIN": 0.0,
+    "CONF_MAX": 1.0,
+}
 
 
-def compute_iou(box1, box2):
-    x1_min = box1[0] - box1[2] / 2
-    y1_min = box1[1] - box1[3] / 2
-    x1_max = box1[0] + box1[2] / 2
-    y1_max = box1[1] + box1[3] / 2
+@dataclass
+class YoloBox:
+    """YOLO-format bounding box with optional confidence."""
 
-    x2_min = box2[0] - box2[2] / 2
-    y2_min = box2[1] - box2[3] / 2
-    x2_max = box2[0] + box2[2] / 2
-    y2_max = box2[1] + box2[3] / 2
-
-    inter_xmin = max(x1_min, x2_min)
-    inter_ymin = max(y1_min, y2_min)
-    inter_xmax = min(x1_max, x2_max)
-    inter_ymax = min(y1_max, y2_max)
-
-    inter_w = max(0, inter_xmax - inter_xmin)
-    inter_h = max(0, inter_ymax - inter_ymin)
-    inter_area = inter_w * inter_h
-
-    area1 = (x1_max - x1_min) * (y1_max - y1_min)
-    area2 = (x2_max - x2_min) * (y2_max - y2_min)
-
-    union = area1 + area2 - inter_area
-    return inter_area / union if union > 0 else 0
+    cls: int
+    cx: float
+    cy: float
+    w: float
+    h: float
+    conf: float = 1.0
+    raw_line: str = ""
 
 
-def load_labels(path):
-    boxes = []
-    with open(path, "r") as f:
-        for line in f:
-            parts = line.strip().split()
-            if len(parts) < 5:
-                continue
-            cls = int(parts[0])
-            x, y, w, h = map(float, parts[1:5])
-            rest = parts[5:]  # keep confidence or extras if present
-            boxes.append((cls, [x, y, w, h], rest, line.strip()))
+@dataclass
+class MatchResult:
+    """Stores the result of matching a prediction box against GT."""
+
+    pred_index: int
+    status: Optional[str]
+    iou: float
+
+
+def load_yolo_boxes(file_path: Path) -> List[YoloBox]:
+    """Parse YOLO txt file into a list of YoloBox entries."""
+    if not file_path.exists():
+        return []
+    boxes: List[YoloBox] = []
+    for line in file_path.read_text().strip().splitlines():
+        parts = line.strip().split()
+        if len(parts) < 5:
+            continue
+        cls = int(float(parts[0]))
+        cx, cy, w, h = map(float, parts[1:5])
+        conf = float(parts[5]) if len(parts) > 5 else 1.0
+        boxes.append(
+            YoloBox(
+                cls=cls,
+                cx=cx,
+                cy=cy,
+                w=w,
+                h=h,
+                conf=conf,
+                raw_line=line.strip(),
+            )
+        )
     return boxes
 
 
-def evaluate(gt_dir, pred_dir, tp_thr, fp_thr, tp_out, fp_out, class_aware=True):
-    gt_files = glob.glob(os.path.join(gt_dir, "*.txt"))
+def yolo_to_xyxy(box: YoloBox) -> tuple[float, float, float, float]:
+    """Convert YOLO center/width/height to corner coordinates."""
+    x1 = box.cx - box.w / 2.0
+    y1 = box.cy - box.h / 2.0
+    x2 = box.cx + box.w / 2.0
+    y2 = box.cy + box.h / 2.0
+    return x1, y1, x2, y2
 
-    total_tp, total_fp = 0, 0
 
-    for gt_file in tqdm(gt_files, desc="Processing files"):
-        file_name = os.path.basename(gt_file)
-        pred_file = os.path.join(pred_dir, file_name)
+def box_iou(box_a: YoloBox, box_b: YoloBox) -> float:
+    """Compute IoU between two YOLO boxes in normalized coordinates."""
+    ax1, ay1, ax2, ay2 = yolo_to_xyxy(box_a)
+    bx1, by1, bx2, by2 = yolo_to_xyxy(box_b)
 
-        tp_lines, fp_lines = [], []
+    inter_x1 = max(ax1, bx1)
+    inter_y1 = max(ay1, by1)
+    inter_x2 = min(ax2, bx2)
+    inter_y2 = min(ay2, by2)
 
-        if not os.path.exists(pred_file):
-            # if prediction file missing, skip but create empties
-            open(os.path.join(tp_out, file_name), "w").close()
-            open(os.path.join(fp_out, file_name), "w").close()
-            continue
+    inter_w = max(inter_x2 - inter_x1, 0.0)
+    inter_h = max(inter_y2 - inter_y1, 0.0)
+    inter_area = inter_w * inter_h
 
-        gt_boxes = load_labels(gt_file)
-        pred_boxes = load_labels(pred_file)
+    area_a = max(ax2 - ax1, 0.0) * max(ay2 - ay1, 0.0)
+    area_b = max(bx2 - bx1, 0.0) * max(by2 - by1, 0.0)
+    union_area = area_a + area_b - inter_area
+    if union_area <= 0:
+        return 0.0
+    return inter_area / union_area
 
-        # matched = set()
-        for cls, pbox, rest, raw_line in pred_boxes:
-            best_iou = 0
-            best_idx = -1
 
-            for i, (gt_cls, gt_box, _, _) in enumerate(gt_boxes):
-                if class_aware and cls != gt_cls:
-                    continue
-                # if i in matched:
-                #    continue
-                iou = compute_iou(pbox, gt_box)
-                if iou > best_iou:
-                    best_iou = iou
-                    best_idx = i
+def match_predictions(
+    gt_boxes: List[YoloBox],
+    pred_boxes: List[YoloBox],
+    tp_iou_thresh: float,
+    fp_iou_thresh: float,
+) -> Dict[int, MatchResult]:
+    """Assign prediction boxes to GT boxes with IoU-based TP/FP labels."""
+    match_map: Dict[int, MatchResult] = {}
+    used_gt = [False] * len(gt_boxes)
+    order = sorted(range(len(pred_boxes)), key=lambda i: pred_boxes[i].conf, reverse=True)
 
-            if best_idx >= 0:
-                if best_iou >= tp_thr:
-                    tp_lines.append(raw_line + "\n")
-                    # matched.add(best_idx)
-                    total_tp += 1
-                elif best_iou <= fp_thr:
-                    fp_lines.append(raw_line + "\n")
-                    total_fp += 1
-            else:
-                fp_lines.append(raw_line + "\n")
+    for pred_idx in order:
+        pred_box = pred_boxes[pred_idx]
+        best_same_iou = 0.0
+        best_gt_idx: Optional[int] = None
+        best_any_iou = 0.0
+        for gt_idx, gt_box in enumerate(gt_boxes):
+            iou = box_iou(pred_box, gt_box)
+            if iou > best_any_iou:
+                best_any_iou = iou
+            if used_gt[gt_idx] or gt_box.cls != pred_box.cls:
+                continue
+            if iou > best_same_iou:
+                best_same_iou = iou
+                best_gt_idx = gt_idx
+
+        status: Optional[str] = None
+        if best_gt_idx is not None and best_same_iou >= tp_iou_thresh:
+            status = "tp"
+            used_gt[best_gt_idx] = True
+        elif best_any_iou <= fp_iou_thresh:
+            status = "fp"
+
+        reported_iou = best_same_iou if best_gt_idx is not None else best_any_iou
+        match_map[pred_idx] = MatchResult(pred_index=pred_idx, status=status, iou=reported_iou)
+    return match_map
+
+
+def ensure_directory(path: Path) -> None:
+    """Create directory if it does not already exist."""
+    path.mkdir(parents=True, exist_ok=True)
+
+
+def write_lines(file_path: Path, lines: Iterable[str]) -> None:
+    """Write YOLO lines to disk (empty file if no lines)."""
+    content = "\n".join(lines)
+    file_path.write_text(content)
+
+
+def process_predictions() -> None:
+    """Entry point for filtering predictions into TP/FP splits."""
+    gt_dir = Path(CONFIG["GT_DIR"])
+    pred_dir = Path(CONFIG["PRED_DIR"])
+    tp_out_dirname = str(CONFIG["TP_OUT_DIR_NAME"])
+    fp_out_dirname = str(CONFIG["FP_OUT_DIR_NAME"])
+    tp_iou_thresh = float(CONFIG["TP_IOU_THRESH"])
+    fp_iou_thresh = float(CONFIG["FP_IOU_THRESH"])
+    conf_min = float(CONFIG["CONF_MIN"])
+    conf_max = float(CONFIG["CONF_MAX"])
+    tp_dir = pred_dir / tp_out_dirname
+    fp_dir = pred_dir / fp_out_dirname
+
+    if fp_iou_thresh >= tp_iou_thresh:
+        raise ValueError("FP_IOU_THRESH must be lower than TP_IOU_THRESH.")
+    if conf_min > conf_max:
+        raise ValueError("CONF_MIN must be lower than or equal to CONF_MAX.")
+
+    for path in (gt_dir, pred_dir):
+        if not path.exists():
+            raise FileNotFoundError(f"Directory not found: {path}")
+    if not tp_out_dirname:
+        raise ValueError("TP_OUT_DIR_NAME cannot be empty.")
+    if not fp_out_dirname:
+        raise ValueError("FP_OUT_DIR_NAME cannot be empty.")
+
+    ensure_directory(tp_dir)
+    ensure_directory(fp_dir)
+
+    print("CONFIG:")
+    for key, value in CONFIG.items():
+        print(f"  {key}: {value}")
+    print(f"  TP_DIR: {tp_dir}")
+    print(f"  FP_DIR: {fp_dir}")
+
+    total_preds = 0
+    total_tp = 0
+    total_fp = 0
+    ignored_preds = 0
+    filtered_by_conf = 0
+    per_class = defaultdict(lambda: {"tp": 0, "fp": 0})
+
+    pred_files = sorted(pred_dir.glob("*.txt"))
+    for pred_file in tqdm(pred_files, desc="Filtering predictions"):
+        preds_all = load_yolo_boxes(pred_file)
+        preds = [box for box in preds_all if conf_min <= box.conf <= conf_max]
+        filtered_by_conf += len(preds_all) - len(preds)
+
+        gt_file = gt_dir / pred_file.name
+        gt_boxes = load_yolo_boxes(gt_file)
+
+        matches = match_predictions(gt_boxes, preds, tp_iou_thresh, fp_iou_thresh)
+
+        tp_lines: List[str] = []
+        fp_lines: List[str] = []
+        for idx, box in enumerate(preds):
+            result = matches.get(idx)
+            if result and result.status == "tp":
+                tp_lines.append(box.raw_line)
+                total_tp += 1
+                per_class[box.cls]["tp"] += 1
+            elif result and result.status == "fp":
+                fp_lines.append(box.raw_line)
                 total_fp += 1
+                per_class[box.cls]["fp"] += 1
+            else:
+                ignored_preds += 1
 
-        # Write TP/FP results
-        with open(os.path.join(tp_out, file_name), "w") as f:
-            f.writelines(tp_lines)
-        with open(os.path.join(fp_out, file_name), "w") as f:
-            f.writelines(fp_lines)
+        total_preds += len(preds)
 
-    return total_tp, total_fp
+        tp_out = tp_dir / pred_file.name
+        fp_out = fp_dir / pred_file.name
+        tp_out.parent.mkdir(parents=True, exist_ok=True)
+        fp_out.parent.mkdir(parents=True, exist_ok=True)
+        write_lines(tp_out, tp_lines)
+        write_lines(fp_out, fp_lines)
+
+    print("\n=== Filtering Summary ===")
+    print(f"Processed prediction files: {len(pred_files)}")
+    print(f"Predictions (after conf filter): {total_preds}")
+    print(f"True positives written: {total_tp}")
+    print(f"False positives written: {total_fp}")
+    print(f"Ignored predictions (IoU between thresholds): {ignored_preds}")
+    print(f"Filtered out by confidence bounds: {filtered_by_conf}")
+
+    if per_class:
+        print("\nPer-class counts:")
+        for cls_id in sorted(per_class.keys()):
+            stats = per_class[cls_id]
+            print(f"  class {cls_id}: TP={stats['tp']} | FP={stats['fp']}")
+
+
+def main() -> None:
+    """CLI entry point."""
+    process_predictions()
 
 
 if __name__ == "__main__":
-    tp_count, fp_count = evaluate(
-        GT_DIR, PRED_DIR,
-        TP_IOU_THRESHOLD, FP_IOU_THRESHOLD,
-        TP_OUT_DIR, FP_OUT_DIR,
-        class_aware=CLASS_AWARE
-    )
-    print(f"Done. TP files in {TP_OUT_DIR}, FP files in {FP_OUT_DIR}")
-    print(f"Total TPs: {tp_count}")
-    print(f"Total FPs: {fp_count}")
+    main()

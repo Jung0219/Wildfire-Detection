@@ -4,15 +4,19 @@ from collections import defaultdict
 from typing import List, Tuple, Dict, Optional
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 # ================= CONFIG =================
 GT_DIR: str        = "/lab/projects/fire_smoke_awr/data/detection/training/AD_phash3_early_smoke/original"     # contains images/test and labels/test
-PRED_BASELINE: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/baseline_AdamW/test/labels"  # e.g., "/path/to/pred_labels"
-PRED_NEW: str      = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/900_AdamW/es_test/composites"
+PRED_BASELINE: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/AdamW/baseline_AdamW/test/labels"  # e.g., "/path/to/pred_labels"
+PRED_NEW: str      = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/AD_phash3_early_smoke/AdamW/800_AdamW/test/labels"  # e.g., "/path/to/new_pred_labels"
 IOU_THRESH: float = 0.5
 MAX_DETS: Optional[int] = 100
 CONF_GRID_STEPS: int = 201
 OUT_DIR: str = os.path.join(PRED_NEW, "plots_baseline_comparison")
+BASE_FONT_SIZE: int = 18
+TITLE_FONT_SIZE: int = 26
+LEGEND_FONT_SIZE: int = 18
 # ==========================================
 GT_DIR = GT_DIR + "/labels/test"
 
@@ -171,6 +175,16 @@ def compare_methods(gt_dir: str, pred_old: str, pred_new: str, iou: float, max_d
 
 
 if __name__ == "__main__":
+    plt.rcParams.update(
+        {
+            "font.size": BASE_FONT_SIZE,
+            "axes.titlesize": TITLE_FONT_SIZE,
+            "axes.labelsize": BASE_FONT_SIZE,
+            "xtick.labelsize": BASE_FONT_SIZE,
+            "ytick.labelsize": BASE_FONT_SIZE,
+            "legend.fontsize": LEGEND_FONT_SIZE,
+        }
+    )
     os.makedirs(OUT_DIR, exist_ok=True)
     res = compare_methods(GT_DIR, PRED_BASELINE, PRED_NEW, IOU_THRESH, MAX_DETS, CONF_GRID_STEPS)
 
@@ -194,47 +208,73 @@ if __name__ == "__main__":
     # === Plotting ===
     fig, axes = plt.subplots(2, 4, figsize=(22, 10))
 
-    axes[0,0].plot(conf, R_old, '--', label="baseline")
-    axes[0,0].plot(conf, R_new, label="new")
+    axes[0,0].plot(conf, R_old, '--', label="baseline", linewidth=3)
+    axes[0,0].plot(conf, R_new, label="new", linewidth=3)
     axes[0,0].set(title="Recall", xlabel="Conf", ylabel="Recall", xlim=(0,1), ylim=(0,1))
+    axes[0,0].xaxis.set_major_locator(MaxNLocator(nbins=5))
+    axes[0,0].yaxis.set_major_locator(MaxNLocator(nbins=5))
     axes[0,0].legend(); axes[0,0].grid(True)
 
-    axes[0,1].plot(conf, P_old, '--', label="baseline")
-    axes[0,1].plot(conf, P_new, label="new")
+    axes[0,1].plot(conf, P_old, '--', label="baseline", linewidth=3)
+    axes[0,1].plot(conf, P_new, label="new", linewidth=3)
     axes[0,1].set(title="Precision", xlabel="Conf", ylabel="Precision", xlim=(0,1), ylim=(0,1))
+    axes[0,1].xaxis.set_major_locator(MaxNLocator(nbins=5))
+    axes[0,1].yaxis.set_major_locator(MaxNLocator(nbins=5))
     axes[0,1].legend(); axes[0,1].grid(True)
 
-    axes[0,2].plot(conf, F1_old, '--', label="baseline")
-    axes[0,2].plot(conf, F1_new, label="new")
+    axes[0,2].plot(conf, F1_old, '--', label="baseline", linewidth=3)
+    axes[0,2].plot(conf, F1_new, label="new", linewidth=3)
     axes[0,2].set(title="F1", xlabel="Conf", ylabel="F1", xlim=(0,1), ylim=(0,1))
+    axes[0,2].xaxis.set_major_locator(MaxNLocator(nbins=5))
+    axes[0,2].yaxis.set_major_locator(MaxNLocator(nbins=5))
     axes[0,2].legend(); axes[0,2].grid(True)
 
-    axes[0,3].plot(R_old, P_old, '--', label=f"baseline (mAP={mAP_old:.3f})")
-    axes[0,3].plot(R_new, P_new, label=f"new (mAP={mAP_new:.3f})")
+    axes[0,3].plot(R_old, P_old, '--', label=f"baseline\n(mAP={mAP_old:.3f})", linewidth=3)
+    axes[0,3].plot(R_new, P_new, label=f"new\n(mAP={mAP_new:.3f})", linewidth=3)
     axes[0,3].set(title="Macro PR Curve", xlabel="Recall", ylabel="Precision", xlim=(0,1), ylim=(0,1))
+    axes[0,3].xaxis.set_major_locator(MaxNLocator(nbins=5))
+    axes[0,3].yaxis.set_major_locator(MaxNLocator(nbins=5))
     axes[0,3].legend(); axes[0,3].grid(True)
 
-    axes[1,0].plot(conf, dR, label="ΔRecall"); axes[1,0].axhline(0,color="black")
+    axes[1,0].plot(conf, dR, label="ΔRecall", linewidth=3); axes[1,0].axhline(0,color="black", linewidth=1.5)
     axes[1,0].set(title="Recall Gain", xlabel="Conf", ylabel="ΔRecall", xlim=(0,1))
+    axes[1,0].xaxis.set_major_locator(MaxNLocator(nbins=5))
     axes[1,0].grid(True); axes[1,0].legend()
 
-    axes[1,1].plot(conf, dP, label="ΔPrecision"); axes[1,1].axhline(0,color="black")
+    axes[1,1].plot(conf, dP, label="ΔPrecision", linewidth=3); axes[1,1].axhline(0,color="black", linewidth=1.5)
     axes[1,1].set(title="Precision Gain", xlabel="Conf", ylabel="ΔPrecision", xlim=(0,1))
+    axes[1,1].xaxis.set_major_locator(MaxNLocator(nbins=5))
     axes[1,1].grid(True); axes[1,1].legend()
 
-    axes[1,2].plot(conf, dF1, label="ΔF1"); axes[1,2].axhline(0,color="black")
+    axes[1,2].plot(conf, dF1, label="ΔF1", linewidth=3); axes[1,2].axhline(0,color="black", linewidth=1.5)
     axes[1,2].set(title="F1 Gain", xlabel="Conf", ylabel="ΔF1", xlim=(0,1))
+    axes[1,2].xaxis.set_major_locator(MaxNLocator(nbins=5))
     axes[1,2].grid(True); axes[1,2].legend()
 
     axes[1,3].axis("off")
-    axes[1,3].text(0.1, 0.55,
+    axes[1,3].text(0.5, 0.46,
                    f"Baseline mAP: {mAP_old:.4f}\n"
                    f"New mAP: {mAP_new:.4f}\n"
                    f"ΔmAP: {delta_mAP:+.4f}\n"
                    f"Mean ΔRecall: {np.mean(dR):+.4f}\n"
                    f"Mean ΔPrecision: {np.mean(dP):+.4f}\n"
                    f"Mean ΔF1: {np.mean(dF1):+.4f}\n",
-                   fontsize=14, bbox=dict(facecolor="white", alpha=0.7))
+                   ha="center",
+                   va="center",
+                    fontsize=22,
+                    linespacing=1.25,
+                    bbox=dict(
+                        boxstyle="round,pad=0.8",
+                        facecolor="white",
+                        edgecolor="black",
+                        linewidth=1.2,
+                        alpha=0.8,
+                    ))
+    axes[1,3].text(0.5, 0.94, "Summary",
+                   ha="center",
+                   va="center",
+                   fontsize=24,
+                   zorder=5)
 
     plt.tight_layout()
     # Make plot filename adaptive based on baseline and new prediction directory names
