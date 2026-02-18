@@ -1,6 +1,0 @@
-path: /lab/projects/fire_smoke_awr/data/detection/training/pyro-sdis/phash10/original
-train: images/train
-val: images/val
-
-nc: 2
-names: ["fire", "smoke"]

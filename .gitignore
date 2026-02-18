@@ -1,6 +1,19 @@
 # Ignore all model checkpoints
 *.pt
 
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
 # Ignore images
 *.jpg
 *.jpeg
@@ -50,3 +63,9 @@ src/.pipeline_old/prototype/debug_vis/
 src/.pipeline_old/two_stage/classifier_accuracy_verification/
 src/.pipeline_old/sky_logic/sky/samples/graphs/
 src/.pipeline_old/sky_logic/sky/samples/preview/
+
+# Common experiment artifacts
+runs/
+wandb/
+checkpoints/
+artifacts/
