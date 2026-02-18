@@ -1,21 +1,20 @@
 # Example config for MR modular pipeline
 # Paths
 # For single_run.py, set image_path; batch runners may still use image_dir.
-image_dir:  /lab/projects/fire_smoke_awr/data/detection/training/early_smoke/original/images/test
-output_dir: /lab/projects/fire_smoke_awr/revision/resolutions/480crop600/test/composite
+image_dir:  /lab/projects/fire_smoke_awr/data/detection/training/pyro-sdis/original/images/test
+output_dir: /lab/projects/fire_smoke_awr/outputs/yolo/detection/pyro-sdis/phash10/final(900)/test/raw+classifier
 # Models
-DetectorWeights: /lab/projects/fire_smoke_awr/revision/resolutions/480crop600/train/weights/best.pt
-# ClassifierWeights: /lab/projects/fire_smoke_awr/outputs/yolo/classification/pyro_sdis/224x224/train/weights/best.pt
-ClassifierWeights: /lab/projects/fire_smoke_awr/outputs/eva02/AD_phash3_early_smoke/train/weights/best_loss.pt
-ClassifierType: eva  # yolo or eva
+DetectorWeights: /lab/projects/fire_smoke_awr/outputs/yolo/detection/pyro-sdis/phash10/final(900)/train/weights/best.pt
+ClassifierWeights: /lab/projects/fire_smoke_awr/outputs/yolo/classification/pyro_sdis/224x224/train/weights/best.pt
+ClassifierType: yolo  # yolo or eva
 # Thresholds
 conf_low: 0.1
-conf_high: 0.4
+conf_high: 0.3
 nms_iou_thresh: 0.45
 # Geometry
-image_size: 480
-intermediate_size: 600 # this has to match the detector
-anchor_y_frac: 0.6 # 0.6 for early smoke, 0.25 for pyro
+image_size: 640
+intermediate_size: 900 # this has to match the detector
+anchor_y_frac: 0.25 # 0.6 for early smoke, 0.25 for pyro
 classifier_crop_size: 224
 # Flags
 save_debug: false

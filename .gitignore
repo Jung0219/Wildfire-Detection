@@ -13,6 +13,7 @@
 data/
 outputs/
 weights/
+revision/
 
 # Ignore common large or generated files
 *.log

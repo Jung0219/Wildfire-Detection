@@ -1,11 +1,11 @@
 ClassifierType: yolo
-ClassifierWeights: /lab/projects/fire_smoke_awr/outputs/yolo/classification/pyro_sdis/224x224/train/weights/best.pt
-DetectorWeights: /lab/projects/fire_smoke_awr/outputs/yolo/detection/pyro-sdis/phash10/900/train/weights/best.pt
-anchor_y_frac: 0.25
+ClassifierWeights: /lab/projects/fire_smoke_awr/outputs/yolo/classification/AD_phash3_early_smoke/train/weights/best.pt
+DetectorWeights: /lab/projects/fire_smoke_awr/revision/resolutions/720crop900/train/weights/best.pt
+anchor_y_frac: 0.6
 classifier_crop_size: 224
 conf_high: 1
 conf_low: 0.0
-image_path: /lab/projects/fire_smoke_awr/data/detection/training/AD_early_smoke/original/images/test/AoF05339.jpg
+image_path: /lab/projects/fire_smoke_awr/data/detection/training/early_smoke/original/images/test/AoF03567.jpg
 intermediate_size: 900
 nms_iou_thresh: 0.45
 output_dir: /lab/projects/fire_smoke_awr/src/runtime_measurement/test

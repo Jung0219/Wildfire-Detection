@@ -8,10 +8,11 @@ import matplotlib.pyplot as plt
 
 # ================= CONFIG =================
 # Set your folders and options here. 
-GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/training/early_smoke/original/labels/test"     # contains images/test and labels/test
-PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/ablation/early_smoke/yolov5su/test/labels" # full_pipeline/yolo_0.3_0.3"
+GT_DIR: str = "/lab/projects/fire_smoke_awr/data/detection/training/pyro-sdis/original/labels/test"     # contains images/test and labels/test
+PRED_DIR: str = "/lab/projects/fire_smoke_awr/outputs/yolo/detection/pyro-sdis/phash10/final(900)/test/full_pipeline" # full_pipeline/yolo_0.3_0.3"
 IOU_THRESH: float = 0.5
 MAX_DETS: Optional[int] = 100  # e.g., 100 to cap per-image detections
+CONF_THRESH: Optional[float] = 0.0  # e.g., 0.25 to filter predictions by confidence
 SAVE_JSON: Optional[str] = None # e.g., "/path/to/results.json"
 SAVE_CSV: Optional[str] = None  # e.g., "/path/to/per_class.csv"
 PLOTS_DIR: Optional[str] = os.path.join(PRED_DIR, "plots")  # e.g., "/path/to/pred_labels/plots"
@@ -101,6 +102,7 @@ def evaluate_directories( # change it so it takes in objects instead of paths.
     pred_dir: str,
     iou_thresh: float = 0.5,
     max_dets_per_image: Optional[int] = None,
+    conf_thresh: Optional[float] = None,
 ) -> Dict:
     """
     Evaluate predictions folder against ground-truth folder in YOLO format.
@@ -126,6 +128,9 @@ def evaluate_directories( # change it so it takes in objects instead of paths.
 
         for gb in gt_boxes:
             gts_by_class[gb[0]][img_id].append(gb)
+
+        if conf_thresh is not None and len(pred_boxes) > 0:
+            pred_boxes = [pb for pb in pred_boxes if pb[5] >= conf_thresh]
 
         if max_dets_per_image is not None and len(pred_boxes) > 0:
             pred_boxes = sorted(pred_boxes, key=lambda x: x[5], reverse=True)[:max_dets_per_image]
@@ -318,6 +323,7 @@ def main():
         PRED_DIR,
         iou_thresh=IOU_THRESH,
         max_dets_per_image=MAX_DETS,
+        conf_thresh=CONF_THRESH,
     )
 
     # Print concise summary
@@ -325,10 +331,11 @@ def main():
     for k, v in res["summary"].items():
         if k == "overall_best_f1":
             b = v
-            print(
-                f"- overall_best_f1: F1={b['f1']:.4f} @ thr={b['score_threshold']:.3f} "
-                f"(P={b['precision']:.3f}, R={b['recall']:.3f})"
-            )
+            print("- overall_best_f1:")
+            print(f"F1: {b['f1']:.4f}")
+            print(f"Precision: {b['precision']:.3f}")
+            print(f"Recall: {b['recall']:.3f}")
+            print(f"F1 threshold: {b['score_threshold']:.3f}")
         else:
             print(f"- {k}: {v}")
 
@@ -336,10 +343,11 @@ def main():
     for cls in res["classes"]:
         m = res["per_class"][cls]
         best = m["best_f1"]
-        print(
-            f"class {cls}: AP={m['ap']:.4f} TP={m['tp']} FP={m['fp']} FN={m['fn']} "
-            f"| bestF1={best['f1']:.4f} @ thr={best['score_threshold']:.3f} (P={best['precision']:.3f}, R={best['recall']:.3f})"
-        )
+        print(f"class {cls}: AP={m['ap']:.4f} TP={m['tp']} FP={m['fp']} FN={m['fn']}")
+        print(f"F1: {best['f1']:.4f}")
+        print(f"Precision: {best['precision']:.3f}")
+        print(f"Recall: {best['recall']:.3f}")
+        print(f"F1 threshold: {best['score_threshold']:.3f}")
 
     # Save summary to txt in parent directory of PRED_DIR
     parent_dir = os.path.dirname(os.path.abspath(PRED_DIR))
@@ -349,20 +357,22 @@ def main():
         for k, v in res["summary"].items():
             if k == "overall_best_f1":
                 b = v
-                f.write(
-                    f"- overall_best_f1: F1={b['f1']:.4f} @ thr={b['score_threshold']:.3f} "
-                    f"(P={b['precision']:.3f}, R={b['recall']:.3f})\n"
-                )
+                f.write("- overall_best_f1:\n")
+                f.write(f"F1: {b['f1']:.4f}\n")
+                f.write(f"Precision: {b['precision']:.3f}\n")
+                f.write(f"Recall: {b['recall']:.3f}\n")
+                f.write(f"F1 threshold: {b['score_threshold']:.3f}\n")
             else:
                 f.write(f"- {k}: {v}\n")
         f.write("\nPer-class metrics:\n")
         for cls in res["classes"]:
             m = res["per_class"][cls]
             b = m["best_f1"]
-            f.write(
-                f"class {cls}: AP={m['ap']:.4f} TP={m['tp']} FP={m['fp']} FN={m['fn']} "
-                f"| bestF1={b['f1']:.4f} @ thr={b['score_threshold']:.3f} (P={b['precision']:.3f}, R={b['recall']:.3f})\n"
-            )
+            f.write(f"class {cls}: AP={m['ap']:.4f} TP={m['tp']} FP={m['fp']} FN={m['fn']}\n")
+            f.write(f"F1: {b['f1']:.4f}\n")
+            f.write(f"Precision: {b['precision']:.3f}\n")
+            f.write(f"Recall: {b['recall']:.3f}\n")
+            f.write(f"F1 threshold: {b['score_threshold']:.3f}\n")
     print(f"Saved TXT: {txt_path}")
 
     # Optional saves

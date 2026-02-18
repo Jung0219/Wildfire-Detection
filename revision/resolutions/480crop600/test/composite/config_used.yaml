@@ -10,5 +10,5 @@ image_size: 480
 intermediate_size: 600
 nms_iou_thresh: 0.45
 output_dir: /lab/projects/fire_smoke_awr/revision/resolutions/480crop600/test/composite
-save_composites: false
+save_composites: true
 save_debug: false
